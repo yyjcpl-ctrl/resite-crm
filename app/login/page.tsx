@@ -1,163 +1,320 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
-export default function LoginPage() {
-  const router = useRouter();
+// 🔔 follow-up status helper
+const getFollowStatus = (dateStr: string) => {
+  if (!dateStr) return "none";
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPass, setShowPass] = useState(false);
+  const today = new Date();
+  const fDate = new Date(dateStr);
 
-  // 🔐 already logged in check (Supabase session)
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        router.replace("/dashboard");
-      }
-    };
-    checkUser();
-  }, [router]);
+  today.setHours(0, 0, 0, 0);
+  fDate.setHours(0, 0, 0, 0);
 
-  const handleLogin = async () => {
-    if (!username || !password) {
-      alert("Enter email and password");
-      return;
+  if (fDate.getTime() === today.getTime()) return "today";
+  if (fDate.getTime() < today.getTime()) return "overdue";
+  return "upcoming";
+};
+
+export default function DemandPage() {
+  const [role, setRole] = useState<string>("user");
+
+  const [properties, setProperties] = useState<any[]>([]);
+  const [demands, setDemands] = useState<any[]>([]);
+  const [openDetail, setOpenDetail] = useState<number | null>(null);
+  const [openMatch, setOpenMatch] = useState<number | null>(null);
+
+  const [form, setForm] = useState({
+    name: "",
+    mobile: "",
+    reference: "",
+    propertyFor: "",
+    type: "",
+    condition: "",
+    bedroom: "",
+    bath: "",
+    facing: "",
+    size: "",
+    purpose: "",
+    lead: "",
+    minPrice: "",
+    maxPrice: "",
+    locality: "",
+    followup: "",
+  });
+
+  const setVal = (k: string, v: string) =>
+    setForm((p) => ({ ...p, [k]: v }));
+
+  const input =
+    "w-full border border-gray-200 bg-white text-black placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 p-2 rounded-lg text-sm outline-none transition";
+
+  // ✅ LOAD + ROLE
+  const loadAll = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userData.user.id)
+        .single();
+
+      setRole(profile?.role || "user");
     }
 
-    setLoading(true);
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: username,
-      password: password,
-    });
-
-    if (error) {
-      alert("❌ Invalid login");
-      setLoading(false);
-      return;
+    const { data: pData } = await supabase.from("properties").select("*");
+    if (pData) {
+      const mappedP = pData.map((p: any) => ({
+        ...p,
+        price: p.max_price || p.min_price,
+      }));
+      setProperties(mappedP);
     }
 
-    router.replace("/dashboard");
+    const { data: dData } = await supabase
+      .from("demands")
+      .select("*")
+      .order("id", { ascending: false });
+
+    if (dData) {
+      const mappedD = dData.map((d: any) => ({
+        ...d,
+        propertyFor: d.property_for,
+        minPrice: d.min_price,
+        maxPrice: d.max_price,
+      }));
+      setDemands(mappedD);
+    }
   };
 
-  const handleSignup = async () => {
-    if (!username || !password) {
-      alert("Enter email and password");
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  // ✅ REALTIME
+  useEffect(() => {
+    const channel = supabase
+      .channel("demands-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "demands" },
+        () => loadAll()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // ✅ ADD demand
+  const addDemand = async () => {
+    if (!form.name) {
+      alert("Enter client name");
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
-      email: username,
-      password: password,
-    });
+    const payload = {
+      name: form.name,
+      mobile: form.mobile,
+      reference: form.reference,
+      property_for: form.propertyFor,
+      type: form.type,
+      condition: form.condition,
+      bedroom: form.bedroom,
+      bath: form.bath,
+      facing: form.facing,
+      size: form.size,
+      min_price: form.minPrice,
+      max_price: form.maxPrice,
+      locality: form.locality,
+      followup: form.followup,
+      status: "Open",
+    };
+
+    const { error } = await supabase.from("demands").insert([payload]);
 
     if (error) {
-      alert(error.message);
-    } else {
-      alert("✅ Account created! Now login.");
+      alert("❌ Error saving demand");
+      return;
     }
+
+    loadAll();
+
+    setForm({
+      name: "",
+      mobile: "",
+      reference: "",
+      propertyFor: "",
+      type: "",
+      condition: "",
+      bedroom: "",
+      bath: "",
+      facing: "",
+      size: "",
+      purpose: "",
+      lead: "",
+      minPrice: "",
+      maxPrice: "",
+      locality: "",
+      followup: "",
+    });
+  };
+
+  const closeDemand = async (id: number) => {
+    await supabase.from("demands").update({ status: "Closed" }).eq("id", id);
+    loadAll();
+  };
+
+  const deleteDemand = async (id: number) => {
+    await supabase.from("demands").delete().eq("id", id);
+    loadAll();
+  };
+
+  const shareWhatsApp = (d: any) => {
+    const text = `Client Requirement:
+Name: ${d.name}
+Mobile: ${d.mobile}
+Property For: ${d.propertyFor || "-"}
+Type: ${d.type || "-"}
+Bedroom: ${d.bedroom || "-"}
+Budget: ₹${d.minPrice || 0} - ₹${d.maxPrice || 0}
+Locality: ${d.locality || "-"}`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  const getMatches = (demand: any) => {
+    return properties.filter((item) => {
+      const price = Number(item.price || 0);
+
+      return (
+        (!demand.type ||
+          item.type?.toLowerCase().includes(demand.type.toLowerCase())) &&
+        (!demand.locality ||
+          item.address?.toLowerCase().includes(
+            demand.locality.toLowerCase()
+          )) &&
+        (!demand.minPrice || price >= Number(demand.minPrice)) &&
+        (!demand.maxPrice || price <= Number(demand.maxPrice))
+      );
+    });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* 🌌 MOVING GRADIENT BACKGROUND */}
-      <div className="absolute inset-0 animate-gradient bg-[linear-gradient(-45deg,#0f172a,#1e3a8a,#6d28d9,#0ea5e9)] bg-[length:400%_400%]" />
+    <div className="relative min-h-screen overflow-hidden">
+      <div className="absolute inset-0 -z-10 bg-[length:400%_400%] bg-gradient-to-br from-indigo-200 via-white to-purple-200 animate-gradientMove" />
 
-      {/* blur glow */}
-      <div className="absolute w-[500px] h-[500px] bg-purple-500/30 rounded-full blur-3xl -top-32 -left-32" />
-      <div className="absolute w-[500px] h-[500px] bg-blue-500/30 rounded-full blur-3xl -bottom-32 -right-32" />
+      <div className="relative z-10 p-6 pb-24 max-w-7xl mx-auto">
+        <button
+          onClick={() => (window.location.href = "/dashboard")}
+          className="relative z-50 inline-flex items-center gap-2 mb-4 bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-lg font-semibold transition"
+        >
+          ← Dashboard
+        </button>
 
-      {/* 🔷 CARD */}
-      <div className="relative w-[360px] backdrop-blur-xl bg-white/95 border border-white/40 p-8 rounded-3xl shadow-2xl">
-        {/* 🏠 PERFECT ROUND LOGO */}
-        <div className="flex justify-center mb-5">
-          <div className="w-28 h-28 rounded-full border-4 border-blue-500 shadow-xl flex items-center justify-center bg-white overflow-hidden">
-            <Image
-              src="/logo.png"
-              alt="Resite Logo"
-              width={90}
-              height={90}
-              className="object-contain rounded-full"
-              priority
-            />
-          </div>
-        </div>
-
-        <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">
-          Resite CRM Login
+        <h1 className="text-3xl font-bold mb-6 text-black">
+          Client Demand Manager
         </h1>
 
-        {/* 👤 EMAIL */}
-        <input
-          className="w-full border border-gray-300 text-black placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none p-3 rounded-xl mb-3 transition-all"
-          placeholder="Email"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+        {/* ➕ QUICK ADD FORM (NEW — nothing removed) */}
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 mb-6 shadow border">
+          <h2 className="font-bold mb-3 text-black">Add Demand</h2>
 
-        {/* 🔐 PASSWORD */}
-        <div className="relative mb-5">
-          <input
-            type={showPass ? "text" : "password"}
-            className="w-full border border-gray-300 text-black placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none p-3 rounded-xl pr-12 transition-all"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <input
+              className={input}
+              placeholder="Client Name"
+              value={form.name}
+              onChange={(e) => setVal("name", e.target.value)}
+            />
+            <input
+              className={input}
+              placeholder="Mobile"
+              value={form.mobile}
+              onChange={(e) => setVal("mobile", e.target.value)}
+            />
+            <input
+              className={input}
+              placeholder="Locality"
+              value={form.locality}
+              onChange={(e) => setVal("locality", e.target.value)}
+            />
+          </div>
 
           <button
-            type="button"
-            onClick={() => setShowPass(!showPass)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 text-sm font-semibold"
+            onClick={addDemand}
+            className="mt-3 bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold"
           >
-            {showPass ? "🙈" : "👁️"}
+            ➕ Save Demand
           </button>
         </div>
 
-        {/* 🔐 LOGIN */}
-        <button
-          type="button"
-          disabled={loading}
-          onClick={handleLogin}
-          className="relative w-full overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:scale-[1.02] text-white py-3 rounded-xl font-semibold shadow-lg transition-all duration-200 disabled:opacity-50"
-        >
-          <span className="relative z-10">
-            🔐 {loading ? "Logging in..." : "Login"}
-          </span>
-          <span className="absolute inset-0 bg-white/20 opacity-0 hover:opacity-100 transition-opacity duration-300" />
-        </button>
+        {/* LIST */}
+        <div className="space-y-4">
+          {demands.length === 0 && (
+            <div className="text-center text-gray-600 bg-white/70 p-6 rounded-xl">
+              No demands yet. Add your first demand 🚀
+            </div>
+          )}
 
-        {/* 🆕 SIGNUP */}
-        <button
-          type="button"
-          onClick={handleSignup}
-          className="w-full mt-3 border border-gray-300 py-3 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100 transition"
-        >
-          🆕 Create Account
-        </button>
+          {demands.map((d) => {
+            const matches = getMatches(d);
 
-        <p className="text-center text-xs text-gray-500 mt-5">
-          Secure CRM Access • Resite
-        </p>
+            return (
+              <div
+                key={d.id}
+                className="rounded-2xl p-4 bg-white/80 backdrop-blur shadow-xl border text-black"
+              >
+                <div className="flex justify-between flex-wrap gap-2">
+                  <h3 className="font-bold">
+                    {d.name} ({d.mobile})
+                  </h3>
+
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() =>
+                        setOpenDetail(openDetail === d.id ? null : d.id)
+                      }
+                      className="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs"
+                    >
+                      See Details
+                    </button>
+
+                    <button
+                      onClick={() => shareWhatsApp(d)}
+                      className="bg-green-600 text-white px-3 py-1 rounded-lg text-xs"
+                    >
+                      WhatsApp
+                    </button>
+
+                    {d.status !== "Closed" ? (
+                      <button
+                        onClick={() => closeDemand(d.id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs"
+                      >
+                        Close
+                      </button>
+                    ) : (
+                      role === "admin" && (
+                        <button
+                          onClick={() => deleteDemand(d.id)}
+                          className="bg-gray-800 text-white px-3 py-1 rounded-lg text-xs"
+                        >
+                          Delete
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
-
-      {/* 🎬 gradient animation */}
-      <style jsx global>{`
-        @keyframes gradientMove {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        .animate-gradient {
-          animation: gradientMove 12s ease infinite;
-        }
-      `}</style>
     </div>
   );
 }
