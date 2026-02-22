@@ -5,40 +5,43 @@ export async function POST(req: Request) {
     const data = await req.json();
 
     // ===============================
-    // ✅ SUPABASE INSERT (MAIN DB)
+    // ✅ SUPABASE CLIENT
     // ===============================
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // ===============================
+    // ✅ INSERT (snake_case columns)
+    // ===============================
     const { error: dbError } = await supabase
       .from("properties")
       .insert([
         {
           date: data.date,
-          propertyFor: data.propertyFor,
+          property_for: data.propertyFor,
           condition: data.condition,
           type: data.type,
-          subType: data.subType,
+          sub_type: data.subType,
           bedroom: data.bedroom,
           bath: data.bath,
           size: data.size,
           facing: data.facing,
-          totalFloor: data.totalFloor,
-          floorNo: data.floorNo,
+          total_floor: data.totalFloor,
+          floor_no: data.floorNo,
           road: data.road,
           furnished: data.furnished,
           parking: data.parking,
           contact: data.contact,
-          referenceBy: data.referenceBy,
-          projectName: data.projectName,
+          reference_by: data.referenceBy,
+          project_name: data.projectName,
           address: data.address,
           additional: data.additional,
-          minPrice: data.minPrice,
-          maxPrice: data.maxPrice,
-          fileBase64: data.fileBase64,
-          fileType: data.fileType,
+          min_price: data.minPrice,
+          max_price: data.maxPrice,
+          file_base64: data.fileBase64,
+          file_type: data.fileType,
           files: data.files,
         },
       ]);
