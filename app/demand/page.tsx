@@ -205,8 +205,9 @@ Locality: ${d.locality || "-"}`;
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div className="absolute inset-0 -z-10 bg-[length:400%_400%] bg-gradient-to-br from-indigo-200 via-white to-purple-200 animate-gradientMove" />
+    <div className="relative min-h-screen">
+      {/* ✅ SAFE gradient */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[length:400%_400%] bg-gradient-to-br from-indigo-200 via-white to-purple-200 animate-gradientMove" />
 
       <div className="relative z-10 p-6 pb-24 max-w-7xl mx-auto">
         <button
@@ -221,7 +222,7 @@ Locality: ${d.locality || "-"}`;
         </h1>
 
         {/* ✅ FORM */}
-        <div className="bg-white/90 backdrop-blur rounded-2xl p-4 shadow-xl border mb-6">
+        <div className="bg-white/90 backdrop-blur rounded-2xl p-4 shadow-xl border mb-6 relative z-20">
           <h2 className="font-bold text-lg mb-3 text-black">
             Add Client Demand
           </h2>
@@ -365,5 +366,4 @@ Locality: ${d.locality || "-"}`;
     </div>
   );
 }
-
 
