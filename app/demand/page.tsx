@@ -20,7 +20,7 @@ const getFollowStatus = (dateStr: string) => {
 };
 
 export default function DemandPage() {
-  const [role, setRole] = useState<string>("user"); // ✅ FIXED
+  const [role, setRole] = useState<string>("user");
 
   const [properties, setProperties] = useState<any[]>([]);
   const [demands, setDemands] = useState<any[]>([]);
@@ -54,7 +54,6 @@ export default function DemandPage() {
 
   // ✅ LOAD + ROLE
   const loadAll = async () => {
-    // role
     const { data: userData } = await supabase.auth.getUser();
     if (userData.user) {
       const { data: profile } = await supabase
@@ -66,7 +65,6 @@ export default function DemandPage() {
       setRole(profile?.role || "user");
     }
 
-    // properties
     const { data: pData } = await supabase.from("properties").select("*");
     if (pData) {
       const mappedP = pData.map((p: any) => ({
@@ -76,7 +74,6 @@ export default function DemandPage() {
       setProperties(mappedP);
     }
 
-    // demands
     const { data: dData } = await supabase
       .from("demands")
       .select("*")
@@ -97,7 +94,7 @@ export default function DemandPage() {
     loadAll();
   }, []);
 
-  // ✅ REALTIME 🔥
+  // ✅ REALTIME
   useEffect(() => {
     const channel = supabase
       .channel("demands-live")
@@ -145,7 +142,7 @@ export default function DemandPage() {
       return;
     }
 
-    loadAll(); // realtime backup
+    loadAll();
 
     setForm({
       name: "",
@@ -167,19 +164,16 @@ export default function DemandPage() {
     });
   };
 
-  // ✅ CLOSE
   const closeDemand = async (id: number) => {
     await supabase.from("demands").update({ status: "Closed" }).eq("id", id);
     loadAll();
   };
 
-  // ✅ DELETE (admin only enforced in UI)
   const deleteDemand = async (id: number) => {
     await supabase.from("demands").delete().eq("id", id);
     loadAll();
   };
 
-  // whatsapp
   const shareWhatsApp = (d: any) => {
     const text = `Client Requirement:
 Name: ${d.name}
@@ -193,7 +187,6 @@ Locality: ${d.locality || "-"}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
-  // match logic
   const getMatches = (demand: any) => {
     return properties.filter((item) => {
       const price = Number(item.price || 0);
@@ -227,9 +220,56 @@ Locality: ${d.locality || "-"}`;
           Client Demand Manager
         </h1>
 
-        {/* FORM same as yours — untouched */}
+        {/* ✅ FORM */}
+        <div className="bg-white/90 backdrop-blur rounded-2xl p-4 shadow-xl border mb-6">
+          <h2 className="font-bold text-lg mb-3 text-black">
+            Add Client Demand
+          </h2>
 
-        {/* LIST */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <input className={input} placeholder="Client Name"
+              value={form.name}
+              onChange={(e) => setVal("name", e.target.value)}
+            />
+            <input className={input} placeholder="Mobile"
+              value={form.mobile}
+              onChange={(e) => setVal("mobile", e.target.value)}
+            />
+            <input className={input} placeholder="Property For"
+              value={form.propertyFor}
+              onChange={(e) => setVal("propertyFor", e.target.value)}
+            />
+            <input className={input} placeholder="Type"
+              value={form.type}
+              onChange={(e) => setVal("type", e.target.value)}
+            />
+            <input className={input} placeholder="Min Price"
+              value={form.minPrice}
+              onChange={(e) => setVal("minPrice", e.target.value)}
+            />
+            <input className={input} placeholder="Max Price"
+              value={form.maxPrice}
+              onChange={(e) => setVal("maxPrice", e.target.value)}
+            />
+            <input className={input} placeholder="Locality"
+              value={form.locality}
+              onChange={(e) => setVal("locality", e.target.value)}
+            />
+            <input type="date" className={input}
+              value={form.followup}
+              onChange={(e) => setVal("followup", e.target.value)}
+            />
+          </div>
+
+          <button
+            onClick={addDemand}
+            className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-xl font-semibold"
+          >
+            ➕ Save Demand
+          </button>
+        </div>
+
+        {/* ✅ LIST */}
         <div className="space-y-4">
           {demands.map((d) => {
             const matches = getMatches(d);
@@ -275,6 +315,48 @@ Locality: ${d.locality || "-"}`;
                     )}
                   </div>
                 </div>
+
+                {/* ✅ DETAILS */}
+                {openDetail === d.id && (
+                  <div className="mt-3 p-3 rounded-xl bg-gray-50 border text-sm space-y-1">
+                    <p><b>Property For:</b> {d.propertyFor || "-"}</p>
+                    <p><b>Type:</b> {d.type || "-"}</p>
+                    <p><b>Bedroom:</b> {d.bedroom || "-"}</p>
+                    <p><b>Budget:</b> ₹{d.minPrice || 0} - ₹{d.maxPrice || 0}</p>
+                    <p><b>Locality:</b> {d.locality || "-"}</p>
+                    <p><b>Status:</b> {d.status}</p>
+
+                    <p>
+                      <b>Follow-up:</b>{" "}
+                      {getFollowStatus(d.followup) === "today" && "🟢 Today"}
+                      {getFollowStatus(d.followup) === "overdue" && "🔴 Overdue"}
+                      {getFollowStatus(d.followup) === "upcoming" && "🟡 Upcoming"}
+                    </p>
+
+                    <button
+                      onClick={() =>
+                        setOpenMatch(openMatch === d.id ? null : d.id)
+                      }
+                      className="mt-2 bg-purple-600 text-white px-3 py-1 rounded-lg text-xs"
+                    >
+                      🔍 Find Matches ({matches.length})
+                    </button>
+
+                    {openMatch === d.id && (
+                      <div className="mt-2 space-y-1">
+                        {matches.length === 0 && (
+                          <p className="text-gray-500">No matching property</p>
+                        )}
+
+                        {matches.map((m: any) => (
+                          <div key={m.id} className="text-xs border rounded-lg p-2 bg-white">
+                            {m.type} — ₹{m.price} — {m.address}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -283,6 +365,5 @@ Locality: ${d.locality || "-"}`;
     </div>
   );
 }
-
 
 
