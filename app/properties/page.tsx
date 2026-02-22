@@ -7,6 +7,9 @@ import { supabase } from "@/lib/supabase";
 export default function PropertiesPage() {
   const [list, setList] = useState<any[]>([]);
 
+  // 🆕 track sold rows
+  const [soldMap, setSoldMap] = useState<Record<string, boolean>>({});
+
   // 🔍 filters
   const [filters, setFilters] = useState({
     id: "",
@@ -60,8 +63,7 @@ export default function PropertiesPage() {
       Number(item.price || item.maxPrice || item.minPrice || 0);
 
     return (
-      (!filters.id ||
-        String(item.id || "").includes(filters.id)) &&
+      (!filters.id || String(item.id || "").includes(filters.id)) &&
       (!filters.propertyFor ||
         (item.propertyFor || "")
           .toLowerCase()
@@ -98,6 +100,31 @@ export default function PropertiesPage() {
     });
   }, [list, filters]);
 
+  // 🆕 SOLD handler
+  const handleSold = (id: string) => {
+    setSoldMap((p) => ({ ...p, [id]: true }));
+  };
+
+  // 🆕 DELETE handler (DB + UI)
+  const handleDelete = async (id: string) => {
+    const confirmDelete = confirm("Delete this property?");
+    if (!confirmDelete) return;
+
+    const { error } = await supabase
+      .from("properties")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert("Delete failed");
+      console.error(error);
+      return;
+    }
+
+    // remove from UI
+    setList((prev) => prev.filter((x) => String(x.id) !== String(id)));
+  };
+
   // ✅ INPUT STYLE
   const input =
     "w-full border border-white/30 bg-white/80 backdrop-blur p-2 rounded-lg text-sm text-black placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-400";
@@ -105,7 +132,6 @@ export default function PropertiesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-6">
       <div className="max-w-7xl mx-auto">
-
         {/* 🔙 back */}
         <Link
           href="/dashboard"
@@ -124,16 +150,13 @@ export default function PropertiesPage() {
           <h2 className="font-bold text-lg">🏠 Resite Properties Data</h2>
           <p>Total Properties: {list.length}</p>
           <p>
-            Search Match: {
-              filtered.filter((x) => checkMatch(x)).length
-            }
+            Search Match: {filtered.filter((x) => checkMatch(x)).length}
           </p>
         </div>
 
         {/* 🔍 FILTER CARD */}
         <div className="bg-white/90 backdrop-blur rounded-2xl p-4 mb-6 shadow-xl">
           <div className="grid md:grid-cols-4 gap-3">
-
             {/* ID */}
             <input
               placeholder="ID"
@@ -279,6 +302,8 @@ export default function PropertiesPage() {
             <tbody>
               {filtered.map((item, i) => {
                 const isMatch = checkMatch(item);
+                const isSold = soldMap[String(item.id)];
+
                 return (
                   <tr
                     key={item.id || i}
@@ -287,6 +312,7 @@ export default function PropertiesPage() {
                     }`}
                   >
                     <td className="p-3">{item.id}</td>
+                    <td className="p-3">{item.propertyFor}</td>
                     <td className="p-3">{item.type}</td>
                     <td className="p-3">{item.condition}</td>
                     <td className="p-3">{item.bedroom}</td>
@@ -296,13 +322,31 @@ export default function PropertiesPage() {
                       ₹ {item.maxPrice || item.price || item.minPrice}
                     </td>
                     <td className="p-3">{item.address}</td>
+
+                    {/* 🆕 ACTION BUTTON */}
+                    <td className="p-3">
+                      {!isSold ? (
+                        <button
+                          onClick={() => handleSold(String(item.id))}
+                          className="px-3 py-1 rounded-lg bg-orange-500 text-white text-xs hover:bg-orange-600"
+                        >
+                          Sold
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDelete(String(item.id))}
+                          className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-
       </div>
     </div>
   );
