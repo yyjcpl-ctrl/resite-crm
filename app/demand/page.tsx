@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 // 🔔 follow-up status helper
-const getFollowStatus = (dateStr: string) => {
+const getFollowStatus = (dateStr?: string) => {
   if (!dateStr) return "none";
 
   const today = new Date();
@@ -21,7 +20,6 @@ const getFollowStatus = (dateStr: string) => {
 
 export default function DemandPage() {
   const [role, setRole] = useState<string>("user");
-
   const [properties, setProperties] = useState<any[]>([]);
   const [demands, setDemands] = useState<any[]>([]);
   const [openDetail, setOpenDetail] = useState<number | null>(null);
@@ -52,41 +50,48 @@ export default function DemandPage() {
   const input =
     "w-full border border-gray-200 bg-white text-black placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 p-2 rounded-lg text-sm outline-none transition";
 
-  // ✅ LOAD + ROLE
+  // ✅ LOAD SAFE
   const loadAll = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData.user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userData.user.id)
-        .single();
+    try {
+      const { data: userData } = await supabase.auth.getUser();
 
-      setRole(profile?.role || "user");
-    }
+      if (userData?.user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", userData.user.id)
+          .single();
 
-    const { data: pData } = await supabase.from("properties").select("*");
-    if (pData) {
-      const mappedP = pData.map((p: any) => ({
-        ...p,
-        price: p.max_price || p.min_price,
-      }));
-      setProperties(mappedP);
-    }
+        setRole(profile?.role || "user");
+      }
 
-    const { data: dData } = await supabase
-      .from("demands")
-      .select("*")
-      .order("id", { ascending: false });
+      const { data: pData } = await supabase.from("properties").select("*");
+      if (pData) {
+        setProperties(
+          pData.map((p: any) => ({
+            ...p,
+            price: p.max_price || p.min_price,
+          }))
+        );
+      }
 
-    if (dData) {
-      const mappedD = dData.map((d: any) => ({
-        ...d,
-        propertyFor: d.property_for,
-        minPrice: d.min_price,
-        maxPrice: d.max_price,
-      }));
-      setDemands(mappedD);
+      const { data: dData } = await supabase
+        .from("demands")
+        .select("*")
+        .order("id", { ascending: false });
+
+      if (dData) {
+        setDemands(
+          dData.map((d: any) => ({
+            ...d,
+            propertyFor: d.property_for,
+            minPrice: d.min_price,
+            maxPrice: d.max_price,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("LOAD ERROR:", err);
     }
   };
 
@@ -117,32 +122,30 @@ export default function DemandPage() {
       return;
     }
 
-    const payload = {
-      name: form.name,
-      mobile: form.mobile,
-      reference: form.reference,
-      property_for: form.propertyFor,
-      type: form.type,
-      condition: form.condition,
-      bedroom: form.bedroom,
-      bath: form.bath,
-      facing: form.facing,
-      size: form.size,
-      min_price: form.minPrice,
-      max_price: form.maxPrice,
-      locality: form.locality,
-      followup: form.followup,
-      status: "Open",
-    };
-
-    const { error } = await supabase.from("demands").insert([payload]);
+    const { error } = await supabase.from("demands").insert([
+      {
+        name: form.name,
+        mobile: form.mobile,
+        reference: form.reference,
+        property_for: form.propertyFor,
+        type: form.type,
+        condition: form.condition,
+        bedroom: form.bedroom,
+        bath: form.bath,
+        facing: form.facing,
+        size: form.size,
+        min_price: form.minPrice,
+        max_price: form.maxPrice,
+        locality: form.locality,
+        followup: form.followup,
+        status: "Open",
+      },
+    ]);
 
     if (error) {
       alert("❌ Error saving demand");
       return;
     }
-
-    loadAll();
 
     setForm({
       name: "",
@@ -162,6 +165,8 @@ export default function DemandPage() {
       locality: "",
       followup: "",
     });
+
+    loadAll();
   };
 
   const closeDemand = async (id: number) => {
@@ -206,23 +211,15 @@ Locality: ${d.locality || "-"}`;
 
   return (
     <div className="relative min-h-screen">
-      {/* ✅ SAFE gradient */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[length:400%_400%] bg-gradient-to-br from-indigo-200 via-white to-purple-200 animate-gradientMove" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-indigo-200 via-white to-purple-200" />
 
       <div className="relative z-10 p-6 pb-24 max-w-7xl mx-auto">
-        <button
-          onClick={() => (window.location.href = "/dashboard")}
-          className="relative z-50 inline-flex items-center gap-2 mb-4 bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-lg font-semibold transition"
-        >
-          ← Dashboard
-        </button>
-
         <h1 className="text-3xl font-bold mb-6 text-black">
           Client Demand Manager
         </h1>
 
-        {/* ✅ FORM */}
-        <div className="bg-white/90 backdrop-blur rounded-2xl p-4 shadow-xl border mb-6 relative z-20">
+        {/* ✅ FORM (SAFE — kabhi gayab nahi hoga) */}
+        <div className="bg-white/90 backdrop-blur rounded-2xl p-4 shadow-xl border mb-6">
           <h2 className="font-bold text-lg mb-3 text-black">
             Add Client Demand
           </h2>
@@ -235,22 +232,6 @@ Locality: ${d.locality || "-"}`;
             <input className={input} placeholder="Mobile"
               value={form.mobile}
               onChange={(e) => setVal("mobile", e.target.value)}
-            />
-            <input className={input} placeholder="Property For"
-              value={form.propertyFor}
-              onChange={(e) => setVal("propertyFor", e.target.value)}
-            />
-            <input className={input} placeholder="Type"
-              value={form.type}
-              onChange={(e) => setVal("type", e.target.value)}
-            />
-            <input className={input} placeholder="Min Price"
-              value={form.minPrice}
-              onChange={(e) => setVal("minPrice", e.target.value)}
-            />
-            <input className={input} placeholder="Max Price"
-              value={form.maxPrice}
-              onChange={(e) => setVal("maxPrice", e.target.value)}
             />
             <input className={input} placeholder="Locality"
               value={form.locality}
@@ -327,13 +308,6 @@ Locality: ${d.locality || "-"}`;
                     <p><b>Locality:</b> {d.locality || "-"}</p>
                     <p><b>Status:</b> {d.status}</p>
 
-                    <p>
-                      <b>Follow-up:</b>{" "}
-                      {getFollowStatus(d.followup) === "today" && "🟢 Today"}
-                      {getFollowStatus(d.followup) === "overdue" && "🔴 Overdue"}
-                      {getFollowStatus(d.followup) === "upcoming" && "🟡 Upcoming"}
-                    </p>
-
                     <button
                       onClick={() =>
                         setOpenMatch(openMatch === d.id ? null : d.id)
@@ -366,4 +340,6 @@ Locality: ${d.locality || "-"}`;
     </div>
   );
 }
+
+
 
