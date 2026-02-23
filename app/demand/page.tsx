@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import Link from "next/link"; // ✅ ADDED
 
 type Demand = {
   id: string;
@@ -89,7 +90,7 @@ export default function DemandPage() {
   // ✅ MATCHING PROPERTIES FROM SUPABASE
   const fetchMatching = async (demand: Demand) => {
     const { data, error } = await supabase
-      .from("properties") // 👈 table name
+      .from("properties")
       .select("*")
       .eq("propertyFor", demand.propertyFor)
       .eq("type", demand.type)
@@ -108,8 +109,19 @@ export default function DemandPage() {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Demand Form</h1>
+    <div className="p-6 bg-gray-50 min-h-screen"> {/* ✅ UPDATED */}
+      
+      {/* ✅ Back to Dashboard */}
+      <div className="flex items-center justify-between mb-4">
+        <Link
+          href="/dashboard"
+          className="bg-black text-white px-4 py-2 rounded-lg text-sm"
+        >
+          ← Back to Dashboard
+        </Link>
+
+        <h1 className="text-2xl font-bold text-black">Demand Form</h1>
+      </div>
 
       {/* ✅ FORM */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-white p-4 rounded-xl shadow">
@@ -122,7 +134,7 @@ export default function DemandPage() {
               placeholder={key}
               value={(form as any)[key]}
               onChange={handleChange}
-              className="border p-2 rounded"
+              className="border p-2 rounded text-black bg-white" // ✅ FIXED
             />
           );
         })}
@@ -143,9 +155,9 @@ export default function DemandPage() {
             className="flex justify-between items-center bg-white p-4 rounded-xl shadow"
           >
             <div>
-              <p className="font-semibold">{d.clientName}</p>
-              <p className="text-sm">{d.mobile}</p>
-              <p className="text-sm">{d.locality}</p>
+              <p className="font-semibold text-black">{d.clientName}</p>
+              <p className="text-sm text-gray-700">{d.mobile}</p>
+              <p className="text-sm text-gray-700">{d.locality}</p>
             </div>
 
             <div className="flex gap-2">
@@ -177,7 +189,7 @@ export default function DemandPage() {
       {/* ✅ DETAILS MODAL */}
       {selected && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center overflow-auto">
-          <div className="bg-white p-6 rounded-xl w-[95%] max-w-4xl">
+          <div className="bg-white p-6 rounded-xl w-[95%] max-w-4xl text-black"> {/* ✅ FIXED */}
             <h2 className="text-xl font-bold mb-4">Demand Details</h2>
 
             {/* DEMAND INFO */}
