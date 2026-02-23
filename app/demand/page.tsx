@@ -1,32 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
-// 🔔 follow-up status helper
-const getFollowStatus = (dateStr?: string) => {
-  if (!dateStr) return "none";
+type Demand = {
+  id: string;
+  clientName: string;
+  mobile: string;
+  reference: string;
+  propertyFor: string;
+  type: string;
+  condition: string;
+  bedroom: string;
+  bath: string;
+  facing: string;
+  size: string;
+  purpose: string;
+  lead: string;
+  minPrice: string;
+  maxPrice: string;
+  locality: string;
+  followUp: string;
+};
 
-  const today = new Date();
-  const fDate = new Date(dateStr);
-
-  today.setHours(0, 0, 0, 0);
-  fDate.setHours(0, 0, 0, 0);
-
-  if (fDate.getTime() === today.getTime()) return "today";
-  if (fDate.getTime() < today.getTime()) return "overdue";
-  return "upcoming";
+type Property = {
+  id: string;
+  title: string;
+  propertyFor: string;
+  type: string;
+  bedroom: string;
+  bath: string;
+  size: string;
+  price: number;
+  locality: string;
 };
 
 export default function DemandPage() {
-  const [role, setRole] = useState<string>("user");
-  const [properties, setProperties] = useState<any[]>([]);
-  const [demands, setDemands] = useState<any[]>([]);
-  const [openDetail, setOpenDetail] = useState<number | null>(null);
-  const [openMatch, setOpenMatch] = useState<number | null>(null);
-
-  const [form, setForm] = useState({
-    name: "",
+  const initialForm: Demand = {
+    id: "",
+    clientName: "",
     mobile: "",
     reference: "",
     propertyFor: "",
@@ -41,305 +53,181 @@ export default function DemandPage() {
     minPrice: "",
     maxPrice: "",
     locality: "",
-    followup: "",
-  });
-
-  const setVal = (k: string, v: string) =>
-    setForm((p) => ({ ...p, [k]: v }));
-
-  const input =
-    "w-full border border-gray-200 bg-white text-black placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 p-2 rounded-lg text-sm outline-none transition";
-
-  // ✅ LOAD SAFE
-  const loadAll = async () => {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-
-      if (userData?.user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", userData.user.id)
-          .single();
-
-        setRole(profile?.role || "user");
-      }
-
-      const { data: pData } = await supabase.from("properties").select("*");
-      if (pData) {
-        setProperties(
-          pData.map((p: any) => ({
-            ...p,
-            price: p.max_price || p.min_price,
-          }))
-        );
-      }
-
-      const { data: dData } = await supabase
-        .from("demands")
-        .select("*")
-        .order("id", { ascending: false });
-
-      if (dData) {
-        setDemands(
-          dData.map((d: any) => ({
-            ...d,
-            propertyFor: d.property_for,
-            minPrice: d.min_price,
-            maxPrice: d.max_price,
-          }))
-        );
-      }
-    } catch (err) {
-      console.error("LOAD ERROR:", err);
-    }
+    followUp: "",
   };
 
-  useEffect(() => {
-    loadAll();
-  }, []);
+  const [form, setForm] = useState<Demand>(initialForm);
+  const [demands, setDemands] = useState<Demand[]>([]);
+  const [selected, setSelected] = useState<Demand | null>(null);
+  const [matchedProps, setMatchedProps] = useState<Property[]>([]);
 
-  // ✅ REALTIME
-  useEffect(() => {
-    const channel = supabase
-      .channel("demands-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "demands" },
-        () => loadAll()
-      )
-      .subscribe();
+  const handleChange = (e: any) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-    return () => {
-      supabase.removeChannel(channel);
+  const handleSubmit = () => {
+    if (!form.clientName) return alert("Client Name required");
+
+    const newDemand = {
+      ...form,
+      id: Date.now().toString(),
     };
-  }, []);
 
-  // ✅ ADD demand
-  const addDemand = async () => {
-    if (!form.name) {
-      alert("Enter client name");
-      return;
+    setDemands([newDemand, ...demands]);
+    setForm(initialForm);
+  };
+
+  const handleDelete = (id: string) => {
+    if (!confirm("Delete this demand?")) return;
+    setDemands(demands.filter((d) => d.id !== id));
+  };
+
+  const openWhatsApp = (mobile: string) => {
+    window.open(`https://wa.me/91${mobile}`, "_blank");
+  };
+
+  // ✅ MATCHING PROPERTIES FROM SUPABASE
+  const fetchMatching = async (demand: Demand) => {
+    const { data, error } = await supabase
+      .from("properties") // 👈 table name
+      .select("*")
+      .eq("propertyFor", demand.propertyFor)
+      .eq("type", demand.type)
+      .eq("locality", demand.locality)
+      .gte("price", demand.minPrice || 0)
+      .lte("price", demand.maxPrice || 999999999);
+
+    if (!error && data) {
+      setMatchedProps(data);
     }
-
-    const { error } = await supabase.from("demands").insert([
-      {
-        name: form.name,
-        mobile: form.mobile,
-        reference: form.reference,
-        property_for: form.propertyFor,
-        type: form.type,
-        condition: form.condition,
-        bedroom: form.bedroom,
-        bath: form.bath,
-        facing: form.facing,
-        size: form.size,
-        min_price: form.minPrice,
-        max_price: form.maxPrice,
-        locality: form.locality,
-        followup: form.followup,
-        status: "Open",
-      },
-    ]);
-
-    if (error) {
-      alert("❌ Error saving demand");
-      return;
-    }
-
-    setForm({
-      name: "",
-      mobile: "",
-      reference: "",
-      propertyFor: "",
-      type: "",
-      condition: "",
-      bedroom: "",
-      bath: "",
-      facing: "",
-      size: "",
-      purpose: "",
-      lead: "",
-      minPrice: "",
-      maxPrice: "",
-      locality: "",
-      followup: "",
-    });
-
-    loadAll();
   };
 
-  const closeDemand = async (id: number) => {
-    await supabase.from("demands").update({ status: "Closed" }).eq("id", id);
-    loadAll();
-  };
-
-  const deleteDemand = async (id: number) => {
-    await supabase.from("demands").delete().eq("id", id);
-    loadAll();
-  };
-
-  const shareWhatsApp = (d: any) => {
-    const text = `Client Requirement:
-Name: ${d.name}
-Mobile: ${d.mobile}
-Property For: ${d.propertyFor || "-"}
-Type: ${d.type || "-"}
-Bedroom: ${d.bedroom || "-"}
-Budget: ₹${d.minPrice || 0} - ₹${d.maxPrice || 0}
-Locality: ${d.locality || "-"}`;
-
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-  };
-
-  const getMatches = (demand: any) => {
-    return properties.filter((item) => {
-      const price = Number(item.price || 0);
-
-      return (
-        (!demand.type ||
-          item.type?.toLowerCase().includes(demand.type.toLowerCase())) &&
-        (!demand.locality ||
-          item.address?.toLowerCase().includes(
-            demand.locality.toLowerCase()
-          )) &&
-        (!demand.minPrice || price >= Number(demand.minPrice)) &&
-        (!demand.maxPrice || price <= Number(demand.maxPrice))
-      );
-    });
+  const handleSeeDetails = async (d: Demand) => {
+    setSelected(d);
+    await fetchMatching(d);
   };
 
   return (
-    <div className="relative min-h-screen">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-indigo-200 via-white to-purple-200" />
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Demand Form</h1>
 
-      <div className="relative z-10 p-6 pb-24 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-black">
-          Client Demand Manager
-        </h1>
+      {/* ✅ FORM */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-white p-4 rounded-xl shadow">
+        {Object.keys(form).map((key) => {
+          if (key === "id") return null;
+          return (
+            <input
+              key={key}
+              name={key}
+              placeholder={key}
+              value={(form as any)[key]}
+              onChange={handleChange}
+              className="border p-2 rounded"
+            />
+          );
+        })}
 
-        {/* ✅ FORM (SAFE — kabhi gayab nahi hoga) */}
-        <div className="bg-white/90 backdrop-blur rounded-2xl p-4 shadow-xl border mb-6">
-          <h2 className="font-bold text-lg mb-3 text-black">
-            Add Client Demand
-          </h2>
+        <button
+          onClick={handleSubmit}
+          className="col-span-full bg-blue-600 text-white py-2 rounded-lg"
+        >
+          Save Demand
+        </button>
+      </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <input className={input} placeholder="Client Name"
-              value={form.name}
-              onChange={(e) => setVal("name", e.target.value)}
-            />
-            <input className={input} placeholder="Mobile"
-              value={form.mobile}
-              onChange={(e) => setVal("mobile", e.target.value)}
-            />
-            <input className={input} placeholder="Locality"
-              value={form.locality}
-              onChange={(e) => setVal("locality", e.target.value)}
-            />
-            <input type="date" className={input}
-              value={form.followup}
-              onChange={(e) => setVal("followup", e.target.value)}
-            />
-          </div>
-
-          <button
-            onClick={addDemand}
-            className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-xl font-semibold"
+      {/* ✅ DEMAND LIST */}
+      <div className="mt-6 space-y-3">
+        {demands.map((d) => (
+          <div
+            key={d.id}
+            className="flex justify-between items-center bg-white p-4 rounded-xl shadow"
           >
-            ➕ Save Demand
-          </button>
-        </div>
+            <div>
+              <p className="font-semibold">{d.clientName}</p>
+              <p className="text-sm">{d.mobile}</p>
+              <p className="text-sm">{d.locality}</p>
+            </div>
 
-        {/* ✅ LIST */}
-        <div className="space-y-4">
-          {demands.map((d) => {
-            const matches = getMatches(d);
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleSeeDetails(d)}
+                className="bg-gray-200 px-3 py-1 rounded"
+              >
+                See Details
+              </button>
 
-            return (
-              <div key={d.id} className="rounded-2xl p-4 bg-white/80 backdrop-blur shadow-xl border text-black">
-                <div className="flex justify-between flex-wrap gap-2">
-                  <h3 className="font-bold">{d.name} ({d.mobile})</h3>
+              <button
+                onClick={() => openWhatsApp(d.mobile)}
+                className="bg-green-500 text-white px-3 py-1 rounded"
+              >
+                WhatsApp
+              </button>
 
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() =>
-                        setOpenDetail(openDetail === d.id ? null : d.id)
-                      }
-                      className="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs"
-                    >
-                      See Details
-                    </button>
+              <button
+                onClick={() => handleDelete(d.id)}
+                className="bg-red-500 text-white px-3 py-1 rounded"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
-                    <button
-                      onClick={() => shareWhatsApp(d)}
-                      className="bg-green-600 text-white px-3 py-1 rounded-lg text-xs"
-                    >
-                      WhatsApp
-                    </button>
+      {/* ✅ DETAILS MODAL */}
+      {selected && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center overflow-auto">
+          <div className="bg-white p-6 rounded-xl w-[95%] max-w-4xl">
+            <h2 className="text-xl font-bold mb-4">Demand Details</h2>
 
-                    {d.status !== "Closed" ? (
-                      <button
-                        onClick={() => closeDemand(d.id)}
-                        className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs"
-                      >
-                        Close
-                      </button>
-                    ) : (
-                      role === "admin" && (
-                        <button
-                          onClick={() => deleteDemand(d.id)}
-                          className="bg-gray-800 text-white px-3 py-1 rounded-lg text-xs"
-                        >
-                          Delete
-                        </button>
-                      )
-                    )}
+            {/* DEMAND INFO */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm mb-6">
+              {Object.entries(selected).map(([k, v]) => (
+                <p key={k}>
+                  <b>{k}:</b> {v}
+                </p>
+              ))}
+            </div>
+
+            {/* ✅ MATCHING PROPERTIES */}
+            <h3 className="text-lg font-bold mb-2">
+              Matching Properties ({matchedProps.length})
+            </h3>
+
+            <div className="space-y-2 max-h-[300px] overflow-auto">
+              {matchedProps.length === 0 && (
+                <p className="text-gray-500">No matching property found</p>
+              )}
+
+              {matchedProps.map((p) => (
+                <div
+                  key={p.id}
+                  className="border rounded p-3 flex justify-between"
+                >
+                  <div>
+                    <p className="font-semibold">{p.title}</p>
+                    <p className="text-sm">
+                      {p.type} | {p.locality}
+                    </p>
+                    <p className="text-sm">
+                      {p.bedroom} BHK | ₹{p.price}
+                    </p>
                   </div>
                 </div>
+              ))}
+            </div>
 
-                {/* ✅ DETAILS */}
-                {openDetail === d.id && (
-                  <div className="mt-3 p-3 rounded-xl bg-gray-50 border text-sm space-y-1">
-                    <p><b>Property For:</b> {d.propertyFor || "-"}</p>
-                    <p><b>Type:</b> {d.type || "-"}</p>
-                    <p><b>Bedroom:</b> {d.bedroom || "-"}</p>
-                    <p><b>Budget:</b> ₹{d.minPrice || 0} - ₹{d.maxPrice || 0}</p>
-                    <p><b>Locality:</b> {d.locality || "-"}</p>
-                    <p><b>Status:</b> {d.status}</p>
-
-                    <button
-                      onClick={() =>
-                        setOpenMatch(openMatch === d.id ? null : d.id)
-                      }
-                      className="mt-2 bg-purple-600 text-white px-3 py-1 rounded-lg text-xs"
-                    >
-                      🔍 Find Matches ({matches.length})
-                    </button>
-
-                    {openMatch === d.id && (
-                      <div className="mt-2 space-y-1">
-                        {matches.length === 0 && (
-                          <p className="text-gray-500">No matching property</p>
-                        )}
-
-                        {matches.map((m: any) => (
-                          <div key={m.id} className="text-xs border rounded-lg p-2 bg-white">
-                            {m.type} — ₹{m.price} — {m.address}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+            <button
+              onClick={() => setSelected(null)}
+              className="mt-4 bg-black text-white px-4 py-2 rounded"
+            >
+              Close
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
-
 
 
