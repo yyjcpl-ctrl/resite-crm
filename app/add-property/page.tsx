@@ -28,10 +28,12 @@ export default function AddPropertyPage() {
     minPrice: "",
     maxPrice: "",
     files: [] as File[],
+    videos: [] as File[], // ✅ added
   };
 
   const [form, setForm] = useState<any>(initialForm);
   const [preview, setPreview] = useState<string[]>([]);
+  const [videoPreview, setVideoPreview] = useState<string[]>([]); // ✅ added
 
   const setVal = (k: string, v: any) =>
     setForm((p: any) => ({ ...p, [k]: v }));
@@ -49,18 +51,28 @@ export default function AddPropertyPage() {
     }));
   }, []);
 
-  // ✅ MULTI FILE
+  // ✅ MULTI FILE (images + unlimited videos)
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
 
     const arr = Array.from(files);
-    setForm((p: any) => ({ ...p, files: arr }));
 
-    const urls = arr
-      .filter((f) => f.type.startsWith("image"))
-      .map((f) => URL.createObjectURL(f));
+    const images = arr.filter((f) => f.type.startsWith("image"));
+    const videos = arr.filter((f) => f.type.startsWith("video"));
 
-    setPreview(urls);
+    setForm((p: any) => ({
+      ...p,
+      files: images,
+      videos: videos,
+    }));
+
+    // image preview
+    const imgUrls = images.map((f) => URL.createObjectURL(f));
+    setPreview(imgUrls);
+
+    // video preview
+    const vidUrls = videos.map((f) => URL.createObjectURL(f));
+    setVideoPreview(vidUrls);
   };
 
   // 🔥 base64
@@ -84,6 +96,12 @@ export default function AddPropertyPage() {
         );
       }
 
+      if (form.videos?.length) {
+        payload.videosBase64 = await Promise.all(
+          form.videos.map((f: File) => toBase64(f))
+        );
+      }
+
       await fetch("/api/save-property", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,6 +111,7 @@ export default function AddPropertyPage() {
       alert("✅ Property Saved Successfully!");
       setForm(initialForm);
       setPreview([]);
+      setVideoPreview([]);
     } catch (err) {
       console.error(err);
       alert("❌ Error saving property");
@@ -175,51 +194,38 @@ export default function AddPropertyPage() {
           </div>
 
           {/* ROW 3 */}
-<div className="grid md:grid-cols-3 gap-4 mt-4">
-  <input
-    list="bedroomList"
-    placeholder="Bedroom"
-    className={input}
-    value={form.bedroom}
-    onChange={(e) => setVal("bedroom", e.target.value)}
-  />
-  <datalist id="bedroomList">
-    <option value="1" />
-    <option value="2" />
-    <option value="3" />
-    <option value="4" />
-  </datalist>
+          <div className="grid md:grid-cols-3 gap-4 mt-4">
+            <input list="bedroomList" placeholder="Bedroom" className={input}
+              value={form.bedroom}
+              onChange={(e) => setVal("bedroom", e.target.value)} />
+            <datalist id="bedroomList">
+              <option value="1" />
+              <option value="2" />
+              <option value="3" />
+              <option value="4" />
+            </datalist>
 
-  <input
-    list="bathList"
-    placeholder="Bathroom"
-    className={input}
-    value={form.bath}
-    onChange={(e) => setVal("bath", e.target.value)}
-  />
-  <datalist id="bathList">
-    <option value="1" />
-    <option value="2" />
-    <option value="3" />
-    <option value="4" />
-  </datalist>
+            <input list="bathList" placeholder="Bathroom" className={input}
+              value={form.bath}
+              onChange={(e) => setVal("bath", e.target.value)} />
+            <datalist id="bathList">
+              <option value="1" />
+              <option value="2" />
+              <option value="3" />
+              <option value="4" />
+            </datalist>
 
-  {/* ✅ NEW SIZE FIELD */}
-  <input
-    list="sizeList"
-    placeholder="Size (sqft)"
-    className={input}
-    value={form.size}
-    onChange={(e) => setVal("size", e.target.value)}
-  />
-  <datalist id="sizeList">
-    <option value="500" />
-    <option value="800" />
-    <option value="1000" />
-    <option value="1500" />
-    <option value="2000" />
-  </datalist>
-</div>
+            <input list="sizeList" placeholder="Size (sqft)" className={input}
+              value={form.size}
+              onChange={(e) => setVal("size", e.target.value)} />
+            <datalist id="sizeList">
+              <option value="500" />
+              <option value="800" />
+              <option value="1000" />
+              <option value="1500" />
+              <option value="2000" />
+            </datalist>
+          </div>
 
           {/* ROW 4 */}
           <div className="grid md:grid-cols-2 gap-4 mt-4">
@@ -270,7 +276,6 @@ export default function AddPropertyPage() {
             </datalist>
           </div>
 
-          {/* REST OF YOUR ORIGINAL CODE CONTINUES EXACT SAME */}
           {/* CONTACT */}
           <div className="grid md:grid-cols-2 gap-4 mt-4">
             <input placeholder="Contact Person" className={input}
@@ -324,6 +329,19 @@ export default function AddPropertyPage() {
                 ))}
               </div>
             )}
+
+            {videoPreview.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                {videoPreview.map((src, i) => (
+                  <video
+                    key={i}
+                    src={src}
+                    controls
+                    className="w-full h-40 object-cover rounded-lg"
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           <button
@@ -340,7 +358,6 @@ export default function AddPropertyPage() {
     </div>
   );
 }
-
 
 
 
