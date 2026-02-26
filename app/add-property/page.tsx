@@ -175,27 +175,51 @@ export default function AddPropertyPage() {
           </div>
 
           {/* ROW 3 */}
-          <div className="grid md:grid-cols-2 gap-4 mt-4">
-            <input list="bedroomList" placeholder="Bedroom" className={input}
-              value={form.bedroom}
-              onChange={(e) => setVal("bedroom", e.target.value)} />
-            <datalist id="bedroomList">
-              <option value="1" />
-              <option value="2" />
-              <option value="3" />
-              <option value="4" />
-            </datalist>
+<div className="grid md:grid-cols-3 gap-4 mt-4">
+  <input
+    list="bedroomList"
+    placeholder="Bedroom"
+    className={input}
+    value={form.bedroom}
+    onChange={(e) => setVal("bedroom", e.target.value)}
+  />
+  <datalist id="bedroomList">
+    <option value="1" />
+    <option value="2" />
+    <option value="3" />
+    <option value="4" />
+  </datalist>
 
-            <input list="bathList" placeholder="Bathroom" className={input}
-              value={form.bath}
-              onChange={(e) => setVal("bath", e.target.value)} />
-            <datalist id="bathList">
-              <option value="1" />
-              <option value="2" />
-              <option value="3" />
-              <option value="4" />
-            </datalist>
-          </div>
+  <input
+    list="bathList"
+    placeholder="Bathroom"
+    className={input}
+    value={form.bath}
+    onChange={(e) => setVal("bath", e.target.value)}
+  />
+  <datalist id="bathList">
+    <option value="1" />
+    <option value="2" />
+    <option value="3" />
+    <option value="4" />
+  </datalist>
+
+  {/* ✅ NEW SIZE FIELD */}
+  <input
+    list="sizeList"
+    placeholder="Size (sqft)"
+    className={input}
+    value={form.size}
+    onChange={(e) => setVal("size", e.target.value)}
+  />
+  <datalist id="sizeList">
+    <option value="500" />
+    <option value="800" />
+    <option value="1000" />
+    <option value="1500" />
+    <option value="2000" />
+  </datalist>
+</div>
 
           {/* ROW 4 */}
           <div className="grid md:grid-cols-2 gap-4 mt-4">

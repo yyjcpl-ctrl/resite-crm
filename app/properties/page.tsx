@@ -330,7 +330,7 @@ export default function PropertiesPage() {
                           onClick={() => handleSold(String(item.id))}
                           className="px-3 py-1 rounded-lg bg-orange-500 text-white text-xs hover:bg-orange-600"
                         >
-                          Sold
+                          Press For Sold
                         </button>
                       ) : (
                         <button
