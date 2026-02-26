@@ -163,7 +163,7 @@ export default function DemandPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => handleSeeDetails(d)}
-                className="bg-gray-200 px-3 py-1 rounded"
+                className="bg-blue-400 text-white px-3 py-1 rounded"
               >
                 See Details
               </button>
@@ -189,7 +189,7 @@ export default function DemandPage() {
       {/* ✅ DETAILS MODAL */}
       {selected && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center overflow-auto">
-          <div className="bg-white p-6 rounded-xl w-[95%] max-w-4xl text-black"> {/* ✅ FIXED */}
+          <div className="bg-orange p-6 rounded-xl w-[95%] max-w-4xl text-black"> {/* ✅ FIXED */}
             <h2 className="text-xl font-bold mb-4">Demand Details</h2>
 
             {/* DEMAND INFO */}
