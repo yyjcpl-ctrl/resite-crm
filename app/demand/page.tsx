@@ -33,6 +33,7 @@ type Property = {
   bedroom?: string;
   bath?: string;
   size?: string;
+  facing?: string;
   price?: number;
   min_price?: number;
   max_price?: number;
@@ -93,7 +94,7 @@ export default function DemandPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  /* ---------- SMART PROPERTY MATCHING ---------- */
+  /* ---------- PROPERTY MATCHING (PRICE + FACING + LOCATION) ---------- */
 
   const fetchMatching = async (demand: Demand) => {
 
@@ -108,8 +109,6 @@ export default function DemandPage() {
 
     const filtered = data.filter((p: any) => {
 
-      const propertyFor = p.property_for ?? p.propertyFor ?? "";
-
       const price =
         Number(p.price) ||
         Number(p.max_price) ||
@@ -117,43 +116,22 @@ export default function DemandPage() {
         0;
 
       const priceMatch =
-        (demand.min_price && price >= Number(demand.min_price)) ||
-        (demand.max_price && price <= Number(demand.max_price));
+        (!demand.min_price || price >= Number(demand.min_price)) &&
+        (!demand.max_price || price <= Number(demand.max_price));
 
-      const propertyForMatch =
-        demand.property_for &&
-        propertyFor.toLowerCase().includes(demand.property_for.toLowerCase());
+      const facingMatch =
+        !demand.facing ||
+        String(p.facing ?? "")
+          .toLowerCase()
+          .includes(demand.facing.toLowerCase());
 
-      const typeMatch =
-        demand.type &&
-        p.type?.toLowerCase().includes(demand.type.toLowerCase());
-
-      const localityMatch =
-        demand.locality &&
+      const locationMatch =
+        !demand.locality ||
         (p.locality || p.address || "")
           .toLowerCase()
           .includes(demand.locality.toLowerCase());
 
-      const bedroomMatch =
-        demand.bedroom &&
-        String(p.bedroom ?? "")
-          .toLowerCase()
-          .includes(demand.bedroom.toLowerCase());
-
-      const bathMatch =
-        demand.bath &&
-        String(p.bath ?? "")
-          .toLowerCase()
-          .includes(demand.bath.toLowerCase());
-
-      return (
-        priceMatch ||
-        propertyForMatch ||
-        typeMatch ||
-        localityMatch ||
-        bedroomMatch ||
-        bathMatch
-      );
+      return priceMatch && facingMatch && locationMatch;
 
     });
 
@@ -286,11 +264,7 @@ export default function DemandPage() {
               </p>
 
               <p className="text-sm text-gray-600">
-                📍 {d.locality} | {d.type}
-              </p>
-
-              <p className="text-sm text-gray-600">
-                🛏 {d.bedroom} Bed | 🛁 {d.bath} Bath
+                📍 {d.locality} | Facing: {d.facing}
               </p>
 
               <p className="text-sm text-gray-600">
@@ -359,11 +333,7 @@ export default function DemandPage() {
                 </p>
 
                 <p className="text-sm text-gray-600">
-                  🛏 {p.bedroom} Bed | 🛁 {p.bath} Bath
-                </p>
-
-                <p className="text-sm text-gray-600">
-                  📏 {p.size}
+                  Facing: {p.facing}
                 </p>
 
                 <p className="text-sm font-semibold text-green-600">
