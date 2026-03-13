@@ -27,16 +27,19 @@ type Demand = {
 type Property = {
   id: string;
   title: string;
-  propertyFor: string;
+  propertyFor?: string;
+  property_for?: string;
   type: string;
   bedroom: string;
   bath: string;
   size: string;
   price: number;
   locality: string;
+  condition?: string;
 };
 
 export default function DemandPage() {
+
   const initialForm: Demand = {
     client_name: "",
     mobile: "",
@@ -66,6 +69,7 @@ export default function DemandPage() {
   }, []);
 
   const fetchDemands = async () => {
+
     const { data, error } = await supabase
       .from("demands")
       .select("*")
@@ -74,6 +78,7 @@ export default function DemandPage() {
     if (!error && data) {
       setDemands(data);
     }
+
   };
 
   const stats = useMemo(() => {
@@ -89,6 +94,7 @@ export default function DemandPage() {
   };
 
   const handleSubmit = async () => {
+
     if (!form.client_name) return alert("Client Name required");
 
     const { data, error } = await supabase
@@ -105,46 +111,109 @@ export default function DemandPage() {
       setDemands([data[0], ...demands]);
       setForm(initialForm);
     }
+
   };
 
   const handleDelete = async (id: string) => {
+
     if (!confirm("Delete this demand?")) return;
 
-    await supabase.from("demands").delete().eq("id", id);
+    await supabase
+      .from("demands")
+      .delete()
+      .eq("id", id);
+
     setDemands(demands.filter((d) => d.id !== id));
+
   };
 
   const openWhatsApp = (mobile: string) => {
     window.open(`https://wa.me/91${mobile}`, "_blank");
   };
 
+  /* -------- MATCHING PROPERTY LOGIC (PROPERTY PAGE STYLE) -------- */
+
   const fetchMatching = async (demand: Demand) => {
-    const min = Number(demand.min_price) || 0;
-    const max = Number(demand.max_price) || 999999999;
 
     const { data, error } = await supabase
       .from("properties")
-      .select("*")
-      .eq("propertyFor", demand.property_for)
-      .eq("type", demand.type)
-      .eq("locality", demand.locality)
-      .gte("price", min)
-      .lte("price", max);
+      .select("*");
 
-    if (!error && data) setMatchedProps(data);
-    else setMatchedProps([]);
+    if (error || !data) {
+      setMatchedProps([]);
+      return;
+    }
+
+    const filtered = data.filter((p: any) => {
+
+      const propertyFor = p.property_for ?? p.propertyFor ?? "";
+      const price = Number(
+        p.price ??
+        p.max_price ??
+        p.min_price ??
+        0
+      );
+
+      const priceMatch =
+        (!demand.min_price || price >= Number(demand.min_price)) &&
+        (!demand.max_price || price <= Number(demand.max_price));
+
+      const propertyForMatch =
+        !demand.property_for ||
+        propertyFor
+          .toLowerCase()
+          .includes(demand.property_for.toLowerCase());
+
+      const typeMatch =
+        !demand.type ||
+        p.type?.toLowerCase().includes(demand.type.toLowerCase());
+
+      const localityMatch =
+        !demand.locality ||
+        p.locality?.toLowerCase().includes(demand.locality.toLowerCase());
+
+      const bedroomMatch =
+        !demand.bedroom ||
+        String(p.bedroom ?? "")
+          .toLowerCase()
+          .includes(demand.bedroom.toLowerCase());
+
+      const bathMatch =
+        !demand.bath ||
+        String(p.bath ?? "")
+          .toLowerCase()
+          .includes(demand.bath.toLowerCase());
+
+      return (
+        priceMatch &&
+        propertyForMatch &&
+        typeMatch &&
+        localityMatch &&
+        bedroomMatch &&
+        bathMatch
+      );
+
+    });
+
+    setMatchedProps(filtered);
+
   };
 
   const handleSeeDetails = async (d: Demand) => {
+
     setSelected(d);
     setMatchedProps([]);
+
     await fetchMatching(d);
+
   };
 
   return (
+
     <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-100 min-h-screen">
 
       <div className="flex items-center justify-between mb-6">
+
         <Link
           href="/dashboard"
           className="bg-black text-white px-4 py-2 rounded-xl text-sm shadow hover:opacity-90"
@@ -155,30 +224,35 @@ export default function DemandPage() {
         <h1 className="text-3xl font-extrabold text-black">
           Demand Dashboard
         </h1>
+
       </div>
 
-      {/* STATS */}
-
       <div className="grid grid-cols-3 gap-4 mb-6">
+
         {[
           { label: "Total Demands", value: stats.total },
           { label: "Today Added", value: stats.today },
           { label: "Follow Ups", value: stats.withFollowUp },
         ].map((s, i) => (
+
           <div
             key={i}
             className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow-md border border-gray-100"
           >
+
             <p className="text-sm text-gray-500">{s.label}</p>
             <p className="text-2xl font-bold text-black">{s.value}</p>
+
           </div>
+
         ))}
+
       </div>
 
-      {/* FORM */}
-
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-white p-5 rounded-3xl shadow-lg border border-gray-100">
+
         {Object.keys(form).map((key) => (
+
           <input
             key={key}
             name={key}
@@ -187,6 +261,7 @@ export default function DemandPage() {
             onChange={handleChange}
             className="border border-gray-200 p-2.5 rounded-xl text-black bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition"
           />
+
         ))}
 
         <button
@@ -195,24 +270,31 @@ export default function DemandPage() {
         >
           Save Demand
         </button>
+
       </div>
 
-      {/* DEMAND LIST */}
-
       <div className="mt-8 bg-white rounded-3xl shadow-lg border border-gray-100 p-5">
+
         <h2 className="text-xl font-bold mb-4 text-black">All Demands</h2>
 
         {demands.length === 0 ? (
+
           <p className="text-gray-500">No demands added yet</p>
+
         ) : (
+
           <div className="grid md:grid-cols-2 gap-4">
 
             {demands.map((d) => (
+
               <div
                 key={d.id}
                 className="border border-gray-200 rounded-2xl p-4 shadow-sm"
               >
-                <h3 className="font-bold text-lg text-black">{d.client_name}</h3>
+
+                <h3 className="font-bold text-lg text-black">
+                  {d.client_name}
+                </h3>
 
                 <p className="text-sm text-gray-600">
                   📞 {d.mobile}
@@ -254,16 +336,19 @@ export default function DemandPage() {
                   </button>
 
                 </div>
+
               </div>
+
             ))}
 
           </div>
+
         )}
+
       </div>
 
-      {/* MATCHED PROPERTIES */}
-
       {selected && (
+
         <div className="mt-8 bg-white rounded-3xl shadow-lg border border-gray-100 p-5">
 
           <h2 className="text-xl font-bold mb-4 text-black">
@@ -271,16 +356,25 @@ export default function DemandPage() {
           </h2>
 
           {matchedProps.length === 0 ? (
-            <p className="text-gray-500">No matching properties found</p>
+
+            <p className="text-gray-500">
+              No matching properties found
+            </p>
+
           ) : (
+
             <div className="grid md:grid-cols-2 gap-4">
 
               {matchedProps.map((p) => (
+
                 <div
                   key={p.id}
                   className="border border-gray-200 rounded-2xl p-4 shadow-sm"
                 >
-                  <h3 className="font-bold text-lg text-black">{p.title}</h3>
+
+                  <h3 className="font-bold text-lg text-black">
+                    {p.title}
+                  </h3>
 
                   <p className="text-sm text-gray-600">
                     📍 {p.locality}
@@ -297,15 +391,21 @@ export default function DemandPage() {
                   <p className="text-sm font-semibold text-green-600">
                     💰 ₹{p.price}
                   </p>
+
                 </div>
+
               ))}
 
             </div>
+
           )}
 
         </div>
+
       )}
 
     </div>
+
   );
+
 }
