@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase"; // ✅ added
 
 export default function AddPropertyPage() {
   const initialForm = {
@@ -29,12 +28,10 @@ export default function AddPropertyPage() {
     minPrice: "",
     maxPrice: "",
     files: [] as File[],
-    videos: [] as File[],
   };
 
   const [form, setForm] = useState<any>(initialForm);
   const [preview, setPreview] = useState<string[]>([]);
-  const [videoPreview, setVideoPreview] = useState<string[]>([]);
 
   const setVal = (k: string, v: any) =>
     setForm((p: any) => ({ ...p, [k]: v }));
@@ -42,7 +39,6 @@ export default function AddPropertyPage() {
   const input =
     "w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 p-3 rounded-xl outline-none transition bg-white text-gray-900 placeholder:text-gray-400";
 
-  // ✅ AUTO DATE + AUTO ID
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     setForm((p: any) => ({
@@ -52,101 +48,46 @@ export default function AddPropertyPage() {
     }));
   }, []);
 
-  // ✅ Supabase upload helper
-  const uploadMedia = async (file: File) => {
-    const fileName = `${Date.now()}-${file.name}`;
-
-    const { data, error } = await supabase.storage
-      .from("property-media")
-      .upload(fileName, file);
-
-    if (error) throw error;
-
-    const { data: publicUrl } = supabase.storage
-      .from("property-media")
-      .getPublicUrl(data.path);
-
-    return publicUrl.publicUrl;
-  };
-
-  // ✅ MULTI FILE
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
 
     const arr = Array.from(files);
+    setForm((p: any) => ({ ...p, files: arr }));
 
-    const images = arr.filter((f) => f.type.startsWith("image"));
-    const videos = arr.filter((f) => f.type.startsWith("video"));
-
-    setForm((p: any) => ({
-      ...p,
-      files: images,
-      videos: videos,
-    }));
-
-    // image preview
-    const imgUrls = images.map((f) => URL.createObjectURL(f));
-    setPreview(imgUrls);
-
-    // ✅ LIMITED video preview (VERY IMPORTANT)
-    const vidUrls = videos
-      .slice(0, 6)
+    const urls = arr
+      .filter((f) => f.type.startsWith("image"))
       .map((f) => URL.createObjectURL(f));
 
-    setVideoPreview(vidUrls);
+    setPreview(urls);
   };
 
-  // 🔥 base64 (unchanged — tumne bola remove na kare)
-  const toBase64 = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () =>
-        resolve((reader.result as string).split(",")[1]);
-      reader.onerror = reject;
-    });
-
-  // ✅ SUBMIT
   const handleSubmit = async () => {
     try {
-      let payload: any = { ...form };
+      const formData = new FormData();
 
-      // ✅ sequential image upload
-      if (form.files?.length) {
-        const imageUrls: string[] = [];
-
-        for (const file of form.files) {
-          const url = await uploadMedia(file);
-          imageUrls.push(url);
-          await new Promise((r) => setTimeout(r, 200));
+      Object.keys(form).forEach((key) => {
+        if (key !== "files") {
+          formData.append(key, form[key]);
         }
-
-        payload.imageUrls = imageUrls;
-      }
-
-      // ✅ sequential video upload (ULTRA IMPORTANT)
-      if (form.videos?.length) {
-        const videoUrls: string[] = [];
-
-        for (const file of form.videos) {
-          const url = await uploadMedia(file);
-          videoUrls.push(url);
-          await new Promise((r) => setTimeout(r, 300));
-        }
-
-        payload.videoUrls = videoUrls;
-      }
-
-      await fetch("/api/save-property", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
       });
+
+      if (form.files?.length) {
+        form.files.forEach((file: File) => {
+          formData.append("files", file);
+        });
+      }
+
+      const res = await fetch("/api/save-property", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Failed");
 
       alert("✅ Property Saved Successfully!");
       setForm(initialForm);
       setPreview([]);
-      setVideoPreview([]);
+
     } catch (err) {
       console.error(err);
       alert("❌ Error saving property");
@@ -156,6 +97,7 @@ export default function AddPropertyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-6">
       <div className="max-w-5xl mx-auto">
+
         <Link
           href="/dashboard"
           className="inline-block mb-4 bg-white text-black px-4 py-2 rounded-xl shadow hover:scale-105 transition font-semibold"
@@ -168,7 +110,184 @@ export default function AddPropertyPage() {
             ➕ Add Property
           </h1>
 
-          {/* ❗ Rest of your UI SAME as before — untouched */}
+          {/* ROW 1 */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <input
+              placeholder="Property ID"
+              className={input}
+              value={form.id}
+              onChange={(e) => setVal("id", e.target.value)}
+            />
+
+            <input
+              type="date"
+              className={input}
+              value={form.date}
+              onChange={(e) => setVal("date", e.target.value)}
+            />
+
+            <input
+              list="propertyForList"
+              placeholder="Property For"
+              className={input}
+              value={form.propertyFor}
+              onChange={(e) => setVal("propertyFor", e.target.value)}
+            />
+            <datalist id="propertyForList">
+              <option value="Sale" />
+              <option value="Rent" />
+              <option value="Lease" />
+            </datalist>
+          </div>
+
+          {/* ROW 2 */}
+          <div className="grid md:grid-cols-3 gap-4 mt-4">
+            <input list="typeList" placeholder="Type" className={input}
+              value={form.type}
+              onChange={(e) => setVal("type", e.target.value)} />
+            <datalist id="typeList">
+              <option value="Residential" />
+              <option value="Commercial" />
+            </datalist>
+
+            <input list="subTypeList" placeholder="Sub Type" className={input}
+              value={form.subType}
+              onChange={(e) => setVal("subType", e.target.value)} />
+            <datalist id="subTypeList">
+              <option value="Flat" />
+              <option value="Villa" />
+              <option value="Office" />
+            </datalist>
+
+            <input list="conditionList" placeholder="New / Resale" className={input}
+              value={form.condition}
+              onChange={(e) => setVal("condition", e.target.value)} />
+            <datalist id="conditionList">
+              <option value="New" />
+              <option value="Resale" />
+            </datalist>
+          </div>
+
+          {/* ROW 3 */}
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <input list="bedroomList" placeholder="Bedroom" className={input}
+              value={form.bedroom}
+              onChange={(e) => setVal("bedroom", e.target.value)} />
+            <datalist id="bedroomList">
+              <option value="1" />
+              <option value="2" />
+              <option value="3" />
+              <option value="4" />
+            </datalist>
+
+            <input list="bathList" placeholder="Bathroom" className={input}
+              value={form.bath}
+              onChange={(e) => setVal("bath", e.target.value)} />
+            <datalist id="bathList">
+              <option value="1" />
+              <option value="2" />
+              <option value="3" />
+              <option value="4" />
+            </datalist>
+          </div>
+
+          {/* SIZE ROW (ADDED) */}
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <input
+              placeholder="Size (Sqft / Sqyd)"
+              className={input}
+              value={form.size}
+              onChange={(e) => setVal("size", e.target.value)}
+            />
+
+            <input
+              placeholder="Road Width"
+              className={input}
+              value={form.road}
+              onChange={(e) => setVal("road", e.target.value)}
+            />
+          </div>
+
+          {/* ROW 4 */}
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <input list="facingList" placeholder="Facing" className={input}
+              value={form.facing}
+              onChange={(e) => setVal("facing", e.target.value)} />
+            <datalist id="facingList">
+              <option value="East" />
+              <option value="West" />
+              <option value="North" />
+              <option value="South" />
+            </datalist>
+
+            <input placeholder="Total Floor" className={input}
+              value={form.totalFloor}
+              onChange={(e) => setVal("totalFloor", e.target.value)} />
+          </div>
+
+          {/* ROW 5 */}
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <input placeholder="Floor No" className={input}
+              value={form.floorNo}
+              onChange={(e) => setVal("floorNo", e.target.value)} />
+            <input placeholder="Road" className={input}
+              value={form.road}
+              onChange={(e) => setVal("road", e.target.value)} />
+          </div>
+
+          {/* ROW 6 */}
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <input list="furnishedList" placeholder="Furnished" className={input}
+              value={form.furnished}
+              onChange={(e) => setVal("furnished", e.target.value)} />
+            <datalist id="furnishedList">
+              <option value="Full" />
+              <option value="Semi" />
+              <option value="Unfurnished" />
+            </datalist>
+
+            <input list="parkingList" placeholder="Parking" className={input}
+              value={form.parking}
+              onChange={(e) => setVal("parking", e.target.value)} />
+            <datalist id="parkingList">
+              <option value="Yes" />
+              <option value="No" />
+              <option value="Covered" />
+              <option value="Open" />
+            </datalist>
+          </div>
+
+          {/* CONTACT */}
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <input placeholder="Contact Person" className={input}
+              value={form.contact}
+              onChange={(e) => setVal("contact", e.target.value)} />
+            <input placeholder="Reference By" className={input}
+              value={form.referenceBy}
+              onChange={(e) => setVal("referenceBy", e.target.value)} />
+          </div>
+
+          <input placeholder="Project Name" className={`${input} mt-4`}
+            value={form.projectName}
+            onChange={(e) => setVal("projectName", e.target.value)} />
+
+          <textarea placeholder="Address" className={`${input} mt-4`}
+            value={form.address}
+            onChange={(e) => setVal("address", e.target.value)} />
+
+          <textarea placeholder="Additional Details" className={`${input} mt-4`}
+            value={form.additional}
+            onChange={(e) => setVal("additional", e.target.value)} />
+
+          {/* PRICE */}
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <input placeholder="Min Budget" className={input}
+              value={form.minPrice}
+              onChange={(e) => setVal("minPrice", e.target.value)} />
+            <input placeholder="Max Budget" className={input}
+              value={form.maxPrice}
+              onChange={(e) => setVal("maxPrice", e.target.value)} />
+          </div>
 
           {/* FILE */}
           <div className="mt-4">
@@ -191,19 +310,6 @@ export default function AddPropertyPage() {
                 ))}
               </div>
             )}
-
-            {videoPreview.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                {videoPreview.map((src, i) => (
-                  <video
-                    key={i}
-                    src={src}
-                    controls
-                    className="w-full h-40 object-cover rounded-lg"
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
           <button
@@ -214,17 +320,9 @@ export default function AddPropertyPage() {
           >
             🚀 Save Property
           </button>
+
         </div>
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-

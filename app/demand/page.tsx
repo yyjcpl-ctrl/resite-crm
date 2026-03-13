@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
 type Demand = {
-  id: string;
-  clientName: string;
+  id?: string;
+  client_name: string;
   mobile: string;
   reference: string;
-  propertyFor: string;
+  property_for: string;
   type: string;
   condition: string;
   bedroom: string;
@@ -18,10 +18,10 @@ type Demand = {
   size: string;
   purpose: string;
   lead: string;
-  minPrice: string;
-  maxPrice: string;
+  min_price: string;
+  max_price: string;
   locality: string;
-  followUp: string;
+  follow_up: string;
 };
 
 type Property = {
@@ -38,11 +38,10 @@ type Property = {
 
 export default function DemandPage() {
   const initialForm: Demand = {
-    id: "",
-    clientName: "",
+    client_name: "",
     mobile: "",
     reference: "",
-    propertyFor: "",
+    property_for: "",
     type: "",
     condition: "",
     bedroom: "",
@@ -51,10 +50,10 @@ export default function DemandPage() {
     size: "",
     purpose: "",
     lead: "",
-    minPrice: "",
-    maxPrice: "",
+    min_price: "",
+    max_price: "",
     locality: "",
-    followUp: "",
+    follow_up: "",
   };
 
   const [form, setForm] = useState<Demand>(initialForm);
@@ -62,16 +61,26 @@ export default function DemandPage() {
   const [selected, setSelected] = useState<Demand | null>(null);
   const [matchedProps, setMatchedProps] = useState<Property[]>([]);
 
-  // 🔥 STATS (ULTRA)
+  useEffect(() => {
+    fetchDemands();
+  }, []);
+
+  const fetchDemands = async () => {
+    const { data, error } = await supabase
+      .from("demands")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setDemands(data);
+    }
+  };
+
   const stats = useMemo(() => {
     return {
       total: demands.length,
-      today: demands.filter(
-        (d) =>
-          Number(d.id) >
-          Date.now() - 24 * 60 * 60 * 1000
-      ).length,
-      withFollowUp: demands.filter((d) => d.followUp).length,
+      today: demands.length,
+      withFollowUp: demands.filter((d) => d.follow_up).length,
     };
   }, [demands]);
 
@@ -79,20 +88,29 @@ export default function DemandPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = () => {
-    if (!form.clientName) return alert("Client Name required");
+  const handleSubmit = async () => {
+    if (!form.client_name) return alert("Client Name required");
 
-    const newDemand = {
-      ...form,
-      id: Date.now().toString(),
-    };
+    const { data, error } = await supabase
+      .from("demands")
+      .insert([form])
+      .select();
 
-    setDemands([newDemand, ...demands]);
-    setForm(initialForm);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    if (data) {
+      setDemands([data[0], ...demands]);
+      setForm(initialForm);
+    }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Delete this demand?")) return;
+
+    await supabase.from("demands").delete().eq("id", id);
     setDemands(demands.filter((d) => d.id !== id));
   };
 
@@ -100,15 +118,14 @@ export default function DemandPage() {
     window.open(`https://wa.me/91${mobile}`, "_blank");
   };
 
-  // ✅ MATCHING
   const fetchMatching = async (demand: Demand) => {
-    const min = Number(demand.minPrice) || 0;
-    const max = Number(demand.maxPrice) || 999999999;
+    const min = Number(demand.min_price) || 0;
+    const max = Number(demand.max_price) || 999999999;
 
     const { data, error } = await supabase
       .from("properties")
       .select("*")
-      .eq("property For", demand.propertyFor)
+      .eq("propertyFor", demand.property_for)
       .eq("type", demand.type)
       .eq("locality", demand.locality)
       .gte("price", min)
@@ -126,7 +143,7 @@ export default function DemandPage() {
 
   return (
     <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-100 min-h-screen">
-      {/* HEADER */}
+
       <div className="flex items-center justify-between mb-6">
         <Link
           href="/dashboard"
@@ -135,12 +152,13 @@ export default function DemandPage() {
           ← Back
         </Link>
 
-        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-extrabold text-black">
           Demand Dashboard
         </h1>
       </div>
 
-      {/* 🔥 STATS BAR */}
+      {/* STATS */}
+
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
           { label: "Total Demands", value: stats.total },
@@ -158,20 +176,18 @@ export default function DemandPage() {
       </div>
 
       {/* FORM */}
+
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-white p-5 rounded-3xl shadow-lg border border-gray-100">
-        {Object.keys(form).map((key) => {
-          if (key === "id") return null;
-          return (
-            <input
-              key={key}
-              name={key}
-              placeholder={key}
-              value={(form as any)[key]}
-              onChange={handleChange}
-              className="border border-gray-200 p-2.5 rounded-xl text-black bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition"
-            />
-          );
-        })}
+        {Object.keys(form).map((key) => (
+          <input
+            key={key}
+            name={key}
+            placeholder={key}
+            value={(form as any)[key]}
+            onChange={handleChange}
+            className="border border-gray-200 p-2.5 rounded-xl text-black bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition"
+          />
+        ))}
 
         <button
           onClick={handleSubmit}
@@ -182,96 +198,114 @@ export default function DemandPage() {
       </div>
 
       {/* DEMAND LIST */}
-      <div className="mt-6 space-y-3">
-        {demands.map((d) => (
-          <div
-            key={d.id}
-            className="flex justify-between items-center bg-white/80 backdrop-blur p-4 rounded-2xl shadow-md border border-gray-100 hover:shadow-2xl hover:-translate-y-0.5 transition-all"
-          >
-            <div>
-              <p className="font-semibold text-black">{d.clientName}</p>
-              <p className="text-sm text-gray-600">{d.mobile}</p>
-              <p className="text-sm text-gray-600">{d.locality}</p>
-            </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleSeeDetails(d)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg"
-              >
-                See Details
-              </button>
+      <div className="mt-8 bg-white rounded-3xl shadow-lg border border-gray-100 p-5">
+        <h2 className="text-xl font-bold mb-4 text-black">All Demands</h2>
 
-              <button
-                onClick={() => openWhatsApp(d.mobile)}
-                className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg"
-              >
-                WhatsApp
-              </button>
+        {demands.length === 0 ? (
+          <p className="text-gray-500">No demands added yet</p>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-4">
 
-              <button
-                onClick={() => handleDelete(d.id)}
-                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg"
+            {demands.map((d) => (
+              <div
+                key={d.id}
+                className="border border-gray-200 rounded-2xl p-4 shadow-sm"
               >
-                Delete
-              </button>
-            </div>
+                <h3 className="font-bold text-lg text-black">{d.client_name}</h3>
+
+                <p className="text-sm text-gray-600">
+                  📞 {d.mobile}
+                </p>
+
+                <p className="text-sm text-gray-600">
+                  📍 {d.locality} | {d.type}
+                </p>
+
+                <p className="text-sm text-gray-600">
+                  🛏 {d.bedroom} Bed | 🛁 {d.bath} Bath
+                </p>
+
+                <p className="text-sm text-gray-600">
+                  💰 {d.min_price} - {d.max_price}
+                </p>
+
+                <div className="flex gap-2 mt-3">
+
+                  <button
+                    onClick={() => openWhatsApp(d.mobile)}
+                    className="bg-green-500 text-white px-3 py-1 rounded-lg text-sm"
+                  >
+                    WhatsApp
+                  </button>
+
+                  <button
+                    onClick={() => handleSeeDetails(d)}
+                    className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm"
+                  >
+                    Match Properties
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(d.id!)}
+                    className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm"
+                  >
+                    Delete
+                  </button>
+
+                </div>
+              </div>
+            ))}
+
           </div>
-        ))}
+        )}
       </div>
 
-      {/* MODAL */}
+      {/* MATCHED PROPERTIES */}
+
       {selected && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center overflow-auto">
-          <div className="bg-white p-6 rounded-3xl w-[95%] max-w-4xl text-black shadow-[0_25px_70px_rgba(0,0,0,0.25)] border border-gray-100">
-            <h2 className="text-xl font-bold mb-4">Demand Details</h2>
+        <div className="mt-8 bg-white rounded-3xl shadow-lg border border-gray-100 p-5">
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm mb-6">
-              {Object.entries(selected).map(([k, v]) => (
-                <p key={k}>
-                  <b>{k}:</b> {v}
-                </p>
-              ))}
-            </div>
+          <h2 className="text-xl font-bold mb-4 text-black">
+            Matching Properties for {selected.client_name}
+          </h2>
 
-            <h3 className="text-lg font-bold mb-2">
-              Matching Properties ({matchedProps.length})
-            </h3>
-
-            <div className="space-y-2 max-h-[300px] overflow-auto">
-              {matchedProps.length === 0 && (
-                <p className="text-gray-500">
-                  No matching property found
-                </p>
-              )}
+          {matchedProps.length === 0 ? (
+            <p className="text-gray-500">No matching properties found</p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
 
               {matchedProps.map((p) => (
                 <div
                   key={p.id}
-                  className="border border-gray-200 rounded-xl p-3 flex justify-between hover:shadow-lg transition-all bg-gradient-to-r from-gray-50 to-white"
+                  className="border border-gray-200 rounded-2xl p-4 shadow-sm"
                 >
-                  <div>
-                    <p className="font-semibold">{p.title}</p>
-                    <p className="text-sm">
-                      {p.type} | {p.locality}
-                    </p>
-                    <p className="text-sm font-semibold">
-                      {p.bedroom} BHK | ₹{p.price}
-                    </p>
-                  </div>
+                  <h3 className="font-bold text-lg text-black">{p.title}</h3>
+
+                  <p className="text-sm text-gray-600">
+                    📍 {p.locality}
+                  </p>
+
+                  <p className="text-sm text-gray-600">
+                    🛏 {p.bedroom} Bed | 🛁 {p.bath} Bath
+                  </p>
+
+                  <p className="text-sm text-gray-600">
+                    📏 {p.size}
+                  </p>
+
+                  <p className="text-sm font-semibold text-green-600">
+                    💰 ₹{p.price}
+                  </p>
                 </div>
               ))}
-            </div>
 
-            <button
-              onClick={() => setSelected(null)}
-              className="mt-4 bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-xl"
-            >
-              Close
-            </button>
-          </div>
+            </div>
+          )}
+
         </div>
       )}
+
     </div>
   );
 }
