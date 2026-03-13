@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 export default function PropertiesPage() {
   const [list, setList] = useState<any[]>([]);
   const [soldMap, setSoldMap] = useState<Record<string, boolean>>({});
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const [filters, setFilters] = useState({
     id: "",
@@ -24,7 +27,6 @@ export default function PropertiesPage() {
   const setF = (k: string, v: string) =>
     setFilters((p) => ({ ...p, [k]: v }));
 
-  // ✅ LOAD PROPERTIES (ULTRA SAFE)
   useEffect(() => {
     const loadProperties = async () => {
       const { data, error } = await supabase
@@ -39,20 +41,15 @@ export default function PropertiesPage() {
 
       const mapped = (data || []).map((p: any) => ({
         ...p,
-
-        // 🔥 FORCE SAFE VALUES
         id: p?.id ?? "",
-
         propertyFor: p?.property_for ?? p?.propertyFor ?? "",
         type: p?.type ?? "",
         condition: p?.condition ?? "",
         bedroom: p?.bedroom ?? "",
         bath: p?.bath ?? "",
         size: p?.size ?? "",
-
         address: p?.address ?? p?.locality ?? "",
         locality: p?.locality ?? p?.address ?? "",
-
         minPrice: p?.min_price ?? p?.minPrice ?? "",
         maxPrice: p?.max_price ?? p?.maxPrice ?? "",
         price:
@@ -64,24 +61,16 @@ export default function PropertiesPage() {
           0,
       }));
 
-      console.log("MAPPED PROPERTIES:", mapped);
       setList(mapped);
     };
 
     loadProperties();
   }, []);
 
-  // 🧠 UNIQUE
-  const unique = (key: string) =>
-    [...new Set(list.map((x) => x?.[key]).filter(Boolean))];
-
-  // 🔥 MATCH CHECKER (CRASH PROOF)
   const checkMatch = (item: any) => {
     if (!item) return false;
 
-    const price = Number(
-      item?.price ?? item?.maxPrice ?? item?.minPrice ?? 0
-    );
+    const price = Number(item?.price ?? item?.maxPrice ?? item?.minPrice ?? 0);
 
     return (
       (!filters.id || String(item?.id ?? "").includes(filters.id)) &&
@@ -99,10 +88,8 @@ export default function PropertiesPage() {
           .includes(filters.condition.toLowerCase())) &&
       (!filters.bedroom ||
         String(item?.bedroom ?? "").includes(filters.bedroom)) &&
-      (!filters.bath ||
-        String(item?.bath ?? "").includes(filters.bath)) &&
-      (!filters.size ||
-        String(item?.size ?? "").includes(filters.size)) &&
+      (!filters.bath || String(item?.bath ?? "").includes(filters.bath)) &&
+      (!filters.size || String(item?.size ?? "").includes(filters.size)) &&
       (!filters.locality ||
         String(item?.locality ?? item?.address ?? "")
           .toLowerCase()
@@ -112,7 +99,6 @@ export default function PropertiesPage() {
     );
   };
 
-  // 🔥 SORT
   const filtered = useMemo(() => {
     return [...list].sort((a, b) => {
       const aMatch = checkMatch(a) ? 1 : 0;
@@ -129,10 +115,7 @@ export default function PropertiesPage() {
     const confirmDelete = confirm("Delete this property?");
     if (!confirmDelete) return;
 
-    const { error } = await supabase
-      .from("properties")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("properties").delete().eq("id", id);
 
     if (error) {
       alert("Delete failed");
@@ -145,6 +128,49 @@ export default function PropertiesPage() {
 
   const input =
     "w-full border border-white/30 bg-white/80 backdrop-blur p-2 rounded-lg text-sm text-black placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-400";
+
+  const exportToExcel = () => {
+    const headers = [
+      "id",
+      "propertyFor",
+      "type",
+      "condition",
+      "bedroom",
+      "bath",
+      "size",
+      "minPrice",
+      "maxPrice",
+      "locality",
+    ];
+
+    const data = filtered.map((item) => [
+      item.id ?? "",
+      item.propertyFor ?? "",
+      item.type ?? "",
+      item.condition ?? "",
+      item.bedroom ?? "",
+      item.bath ?? "",
+      item.size ?? "",
+      item.minPrice ?? "",
+      item.maxPrice ?? "",
+      item.locality ?? item.address ?? "",
+    ]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Properties");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(blob, "Resite_Properties.xlsx");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-6">
@@ -163,12 +189,16 @@ export default function PropertiesPage() {
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 rounded-2xl mb-6 shadow-xl">
           <h2 className="font-bold text-lg">🏠 Resite Properties Data</h2>
           <p>Total Properties: {list.length}</p>
-          <p>
-            Search Match: {filtered.filter((x) => checkMatch(x)).length}
-          </p>
+          <p>Search Match: {filtered.filter((x) => checkMatch(x)).length}</p>
+
+          <button
+            onClick={exportToExcel}
+            className="mt-3 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg text-white font-semibold"
+          >
+            Export to Excel
+          </button>
         </div>
 
-        {/* FILTER CARD unchanged */}
         <div className="bg-white/90 backdrop-blur rounded-2xl p-4 mb-6 shadow-xl">
           <div className="grid md:grid-cols-4 gap-3">
             {Object.keys(filters).map((key) => (
@@ -183,13 +213,25 @@ export default function PropertiesPage() {
           </div>
         </div>
 
-        {/* TABLE */}
         <div className="overflow-auto rounded-2xl shadow-2xl bg-white">
           <table className="w-full text-sm text-black">
+            <thead className="bg-gray-200 font-semibold">
+              <tr>
+                <th className="p-3 text-left">ID</th>
+                <th className="p-3 text-left">Property For</th>
+                <th className="p-3 text-left">Type</th>
+                <th className="p-3 text-left">Condition</th>
+                <th className="p-3 text-left">Bedroom</th>
+                <th className="p-3 text-left">Bath</th>
+                <th className="p-3 text-left">Size</th>
+                <th className="p-3 text-left">Price</th>
+                <th className="p-3 text-left">Locality</th>
+                <th className="p-3 text-left">Action</th>
+              </tr>
+            </thead>
             <tbody>
               {filtered.map((item, i) => {
                 const isMatch = checkMatch(item);
-                const isSold = soldMap[String(item.id)];
 
                 return (
                   <tr
@@ -208,26 +250,56 @@ export default function PropertiesPage() {
                     <td className="p-3 font-semibold text-green-700">
                       ₹ {item.price}
                     </td>
-                    <td className="p-3">
-                      {item.locality || item.address}
-                    </td>
+                    <td className="p-3">{item.locality || item.address}</td>
+                    <td className="p-3 relative">
+                      <div className="relative inline-block text-left">
+                        <button
+                          onClick={() =>
+                            setOpenMenu(
+                              openMenu === String(item.id)
+                                ? null
+                                : String(item.id)
+                            )
+                          }
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-200 hover:bg-blue-300"
+                        >
+                          ⋮
+                        </button>
 
-                    <td className="p-3">
-                      {!isSold ? (
-                        <button
-                          onClick={() => handleSold(String(item.id))}
-                          className="px-3 py-1 rounded-lg bg-orange-500 text-white text-xs hover:bg-orange-600"
-                        >
-                          Press For Sold
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleDelete(String(item.id))}
-                          className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
-                      )}
+                        {openMenu === String(item.id) && (
+                          <div className="absolute right-0 mt-2 w-40 bg-white border rounded-xl shadow-lg z-50">
+                            {!soldMap[String(item.id)] && (
+                              <button
+                                onClick={() => {
+                                  handleSold(String(item.id));
+                                  setOpenMenu(null);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                              >
+                                Press For Sold
+                              </button>
+                            )}
+
+                            <Link
+                              href={`/properties/edit/${item.id}`}
+                              className="block px-4 py-2 text-sm hover:bg-gray-100"
+                              onClick={() => setOpenMenu(null)}
+                            >
+                              Edit
+                            </Link>
+
+                            <button
+                              onClick={() => {
+                                handleDelete(String(item.id));
+                                setOpenMenu(null);
+                              }}
+                              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -239,4 +311,3 @@ export default function PropertiesPage() {
     </div>
   );
 }
-
