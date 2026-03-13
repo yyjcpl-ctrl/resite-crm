@@ -93,7 +93,7 @@ export default function DemandPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  /* ---------- PROPERTY MATCHING ---------- */
+  /* ---------- SMART PROPERTY MATCHING ---------- */
 
   const fetchMatching = async (demand: Demand) => {
 
@@ -117,41 +117,41 @@ export default function DemandPage() {
         0;
 
       const priceMatch =
-        (!demand.min_price || price >= Number(demand.min_price)) &&
-        (!demand.max_price || price <= Number(demand.max_price));
+        (demand.min_price && price >= Number(demand.min_price)) ||
+        (demand.max_price && price <= Number(demand.max_price));
 
       const propertyForMatch =
-        !demand.property_for ||
+        demand.property_for &&
         propertyFor.toLowerCase().includes(demand.property_for.toLowerCase());
 
       const typeMatch =
-        !demand.type ||
+        demand.type &&
         p.type?.toLowerCase().includes(demand.type.toLowerCase());
 
       const localityMatch =
-        !demand.locality ||
+        demand.locality &&
         (p.locality || p.address || "")
           .toLowerCase()
           .includes(demand.locality.toLowerCase());
 
       const bedroomMatch =
-        !demand.bedroom ||
+        demand.bedroom &&
         String(p.bedroom ?? "")
           .toLowerCase()
           .includes(demand.bedroom.toLowerCase());
 
       const bathMatch =
-        !demand.bath ||
+        demand.bath &&
         String(p.bath ?? "")
           .toLowerCase()
           .includes(demand.bath.toLowerCase());
 
       return (
-        priceMatch &&
-        propertyForMatch &&
-        typeMatch &&
-        localityMatch &&
-        bedroomMatch &&
+        priceMatch ||
+        propertyForMatch ||
+        typeMatch ||
+        localityMatch ||
+        bedroomMatch ||
         bathMatch
       );
 
@@ -160,6 +160,8 @@ export default function DemandPage() {
     setMatchedProps(filtered);
 
   };
+
+  /* ---------- SAVE DEMAND ---------- */
 
   const handleSubmit = async () => {
 
