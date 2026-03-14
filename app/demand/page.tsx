@@ -6,6 +6,7 @@ import Link from "next/link";
 
 type Demand = {
   id?: string;
+  date: string;
   client_name: string;
   mobile: string;
   reference: string;
@@ -44,6 +45,7 @@ type Property = {
 export default function DemandPage() {
 
   const initialForm: Demand = {
+    date: "",
     client_name: "",
     mobile: "",
     reference: "",
@@ -224,6 +226,7 @@ export default function DemandPage() {
           <input
             key={key}
             name={key}
+            type={key === "date" ? "date" : "text"}
             placeholder={key}
             value={(form as any)[key]}
             onChange={handleChange}
@@ -254,6 +257,10 @@ export default function DemandPage() {
           {demands.map((d) => (
 
             <div key={d.id} className="border rounded-2xl p-4">
+
+              <p className="text-xs text-gray-500">
+                📅 {d.date}
+              </p>
 
               <h3 className="font-bold text-lg text-black">
                 {d.client_name}

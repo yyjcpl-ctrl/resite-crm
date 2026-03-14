@@ -39,6 +39,7 @@ export default function AddPropertyPage() {
   const input =
     "w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 p-3 rounded-xl outline-none transition bg-white text-gray-900 placeholder:text-gray-400";
 
+  // AUTO DATE + AUTO ID
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     setForm((p: any) => ({
@@ -48,6 +49,7 @@ export default function AddPropertyPage() {
     }));
   }, []);
 
+  // FILE HANDLE
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
 
@@ -61,16 +63,46 @@ export default function AddPropertyPage() {
     setPreview(urls);
   };
 
+  // SUBMIT
   const handleSubmit = async () => {
     try {
       const formData = new FormData();
 
-      Object.keys(form).forEach((key) => {
-        if (key !== "files") {
-          formData.append(key, form[key]);
-        }
-      });
+      // ✅ Supabase column names mapping
+      formData.append("property_id", form.id);
+      formData.append("date", form.date);
 
+      formData.append("property_for", form.propertyFor);
+      formData.append("type", form.type);
+      formData.append("sub_type", form.subType);
+      formData.append("condition", form.condition);
+
+      formData.append("bedroom", form.bedroom);
+      formData.append("bath", form.bath);
+
+      formData.append("size", form.size);
+      formData.append("facing", form.facing);
+
+      formData.append("total_floor", form.totalFloor);
+      formData.append("floor_no", form.floorNo);
+
+      formData.append("road", form.road);
+
+      formData.append("furnished", form.furnished);
+      formData.append("parking", form.parking);
+
+      formData.append("contact_mobile", form.contact);
+      formData.append("reference_by", form.referenceBy);
+
+      formData.append("project_name", form.projectName);
+      formData.append("address", form.address);
+
+      formData.append("additional", form.additional);
+
+      formData.append("min_price", form.minPrice);
+      formData.append("max_price", form.maxPrice);
+
+      // FILES
       if (form.files?.length) {
         form.files.forEach((file: File) => {
           formData.append("files", file);
@@ -87,7 +119,6 @@ export default function AddPropertyPage() {
       alert("✅ Property Saved Successfully!");
       setForm(initialForm);
       setPreview([]);
-
     } catch (err) {
       console.error(err);
       alert("❌ Error saving property");
@@ -133,6 +164,7 @@ export default function AddPropertyPage() {
               value={form.propertyFor}
               onChange={(e) => setVal("propertyFor", e.target.value)}
             />
+
             <datalist id="propertyForList">
               <option value="Sale" />
               <option value="Rent" />
@@ -191,34 +223,11 @@ export default function AddPropertyPage() {
             </datalist>
           </div>
 
-          {/* SIZE ROW (ADDED) */}
-          <div className="grid md:grid-cols-2 gap-4 mt-4">
-            <input
-              placeholder="Size (Sqft / Sqyd)"
-              className={input}
-              value={form.size}
-              onChange={(e) => setVal("size", e.target.value)}
-            />
-
-            <input
-              placeholder="Road Width"
-              className={input}
-              value={form.road}
-              onChange={(e) => setVal("road", e.target.value)}
-            />
-          </div>
-
           {/* ROW 4 */}
           <div className="grid md:grid-cols-2 gap-4 mt-4">
-            <input list="facingList" placeholder="Facing" className={input}
+            <input placeholder="Facing" className={input}
               value={form.facing}
               onChange={(e) => setVal("facing", e.target.value)} />
-            <datalist id="facingList">
-              <option value="East" />
-              <option value="West" />
-              <option value="North" />
-              <option value="South" />
-            </datalist>
 
             <input placeholder="Total Floor" className={input}
               value={form.totalFloor}
@@ -237,24 +246,13 @@ export default function AddPropertyPage() {
 
           {/* ROW 6 */}
           <div className="grid md:grid-cols-2 gap-4 mt-4">
-            <input list="furnishedList" placeholder="Furnished" className={input}
+            <input placeholder="Furnished" className={input}
               value={form.furnished}
               onChange={(e) => setVal("furnished", e.target.value)} />
-            <datalist id="furnishedList">
-              <option value="Full" />
-              <option value="Semi" />
-              <option value="Unfurnished" />
-            </datalist>
 
-            <input list="parkingList" placeholder="Parking" className={input}
+            <input placeholder="Parking" className={input}
               value={form.parking}
               onChange={(e) => setVal("parking", e.target.value)} />
-            <datalist id="parkingList">
-              <option value="Yes" />
-              <option value="No" />
-              <option value="Covered" />
-              <option value="Open" />
-            </datalist>
           </div>
 
           {/* CONTACT */}
@@ -262,6 +260,7 @@ export default function AddPropertyPage() {
             <input placeholder="Contact Person" className={input}
               value={form.contact}
               onChange={(e) => setVal("contact", e.target.value)} />
+
             <input placeholder="Reference By" className={input}
               value={form.referenceBy}
               onChange={(e) => setVal("referenceBy", e.target.value)} />
