@@ -15,10 +15,23 @@ export default function PropertiesPage() {
     id: "",
     propertyFor: "",
     type: "",
+    subType: "",
     condition: "",
     bedroom: "",
     bath: "",
     size: "",
+    roadWidth: "",
+    facing: "",
+    totalFloor: "",
+    floorNo: "",
+    furnished: "",
+    parking: "",
+    contactName: "",
+    contactMobile: "",
+    reference: "",
+    projectName: "",
+    address: "",
+    additionalDetails: "",
     minPrice: "",
     maxPrice: "",
     locality: "",
@@ -44,10 +57,22 @@ export default function PropertiesPage() {
         id: p?.id ?? "",
         propertyFor: p?.property_for ?? p?.propertyFor ?? "",
         type: p?.type ?? "",
+        subType: p?.sub_type ?? "",
         condition: p?.condition ?? "",
         bedroom: p?.bedroom ?? "",
         bath: p?.bath ?? "",
         size: p?.size ?? "",
+        roadWidth: p?.road_width ?? "",
+        facing: p?.facing ?? "",
+        totalFloor: p?.total_floor ?? "",
+        floorNo: p?.floor_no ?? "",
+        furnished: p?.furnished ?? "",
+        parking: p?.parking ?? "",
+        contactName: p?.contact_name ?? "",
+        contactMobile: p?.contact_mobile ?? "",
+        reference: p?.reference ?? "",
+        projectName: p?.project_name ?? "",
+        additionalDetails: p?.additional_details ?? "",
         address: p?.address ?? p?.locality ?? "",
         locality: p?.locality ?? p?.address ?? "",
         minPrice: p?.min_price ?? p?.minPrice ?? "",
@@ -82,6 +107,10 @@ export default function PropertiesPage() {
         String(item?.type ?? "")
           .toLowerCase()
           .includes(filters.type.toLowerCase())) &&
+      (!filters.subType ||
+        String(item?.subType ?? "")
+          .toLowerCase()
+          .includes(filters.subType.toLowerCase())) &&
       (!filters.condition ||
         String(item?.condition ?? "")
           .toLowerCase()
@@ -90,6 +119,38 @@ export default function PropertiesPage() {
         String(item?.bedroom ?? "").includes(filters.bedroom)) &&
       (!filters.bath || String(item?.bath ?? "").includes(filters.bath)) &&
       (!filters.size || String(item?.size ?? "").includes(filters.size)) &&
+      (!filters.roadWidth ||
+        String(item?.roadWidth ?? "").includes(filters.roadWidth)) &&
+      (!filters.facing ||
+        String(item?.facing ?? "")
+          .toLowerCase()
+          .includes(filters.facing.toLowerCase())) &&
+      (!filters.totalFloor ||
+        String(item?.totalFloor ?? "").includes(filters.totalFloor)) &&
+      (!filters.floorNo ||
+        String(item?.floorNo ?? "").includes(filters.floorNo)) &&
+      (!filters.furnished ||
+        String(item?.furnished ?? "")
+          .toLowerCase()
+          .includes(filters.furnished.toLowerCase())) &&
+      (!filters.parking ||
+        String(item?.parking ?? "")
+          .toLowerCase()
+          .includes(filters.parking.toLowerCase())) &&
+      (!filters.contactName ||
+        String(item?.contactName ?? "")
+          .toLowerCase()
+          .includes(filters.contactName.toLowerCase())) &&
+      (!filters.contactMobile ||
+        String(item?.contactMobile ?? "").includes(filters.contactMobile)) &&
+      (!filters.reference ||
+        String(item?.reference ?? "")
+          .toLowerCase()
+          .includes(filters.reference.toLowerCase())) &&
+      (!filters.projectName ||
+        String(item?.projectName ?? "")
+          .toLowerCase()
+          .includes(filters.projectName.toLowerCase())) &&
       (!filters.locality ||
         String(item?.locality ?? item?.address ?? "")
           .toLowerCase()
@@ -134,10 +195,22 @@ export default function PropertiesPage() {
       "id",
       "propertyFor",
       "type",
+      "subType",
       "condition",
       "bedroom",
       "bath",
       "size",
+      "roadWidth",
+      "facing",
+      "totalFloor",
+      "floorNo",
+      "furnished",
+      "parking",
+      "contactName",
+      "contactMobile",
+      "reference",
+      "projectName",
+      "additionalDetails",
       "minPrice",
       "maxPrice",
       "locality",
@@ -147,10 +220,22 @@ export default function PropertiesPage() {
       item.id ?? "",
       item.propertyFor ?? "",
       item.type ?? "",
+      item.subType ?? "",
       item.condition ?? "",
       item.bedroom ?? "",
       item.bath ?? "",
       item.size ?? "",
+      item.roadWidth ?? "",
+      item.facing ?? "",
+      item.totalFloor ?? "",
+      item.floorNo ?? "",
+      item.furnished ?? "",
+      item.parking ?? "",
+      item.contactName ?? "",
+      item.contactMobile ?? "",
+      item.reference ?? "",
+      item.projectName ?? "",
+      item.additionalDetails ?? "",
       item.minPrice ?? "",
       item.maxPrice ?? "",
       item.locality ?? item.address ?? "",
@@ -220,15 +305,28 @@ export default function PropertiesPage() {
                 <th className="p-3 text-left">ID</th>
                 <th className="p-3 text-left">Property For</th>
                 <th className="p-3 text-left">Type</th>
+                <th className="p-3 text-left">Sub Type</th>
                 <th className="p-3 text-left">Condition</th>
                 <th className="p-3 text-left">Bedroom</th>
                 <th className="p-3 text-left">Bath</th>
                 <th className="p-3 text-left">Size</th>
+                <th className="p-3 text-left">Road Width</th>
+                <th className="p-3 text-left">Facing</th>
+                <th className="p-3 text-left">Total Floor</th>
+                <th className="p-3 text-left">Floor No</th>
+                <th className="p-3 text-left">Furnished</th>
+                <th className="p-3 text-left">Parking</th>
+                <th className="p-3 text-left">Contact Name</th>
+                <th className="p-3 text-left">Contact Mobile</th>
+                <th className="p-3 text-left">Reference</th>
+                <th className="p-3 text-left">Project Name</th>
                 <th className="p-3 text-left">Price</th>
                 <th className="p-3 text-left">Locality</th>
+                <th className="p-3 text-left">Additional Details</th>
                 <th className="p-3 text-left">Action</th>
               </tr>
             </thead>
+
             <tbody>
               {filtered.map((item, i) => {
                 const isMatch = checkMatch(item);
@@ -243,14 +341,27 @@ export default function PropertiesPage() {
                     <td className="p-3">{item.id}</td>
                     <td className="p-3">{item.propertyFor}</td>
                     <td className="p-3">{item.type}</td>
+                    <td className="p-3">{item.subType}</td>
                     <td className="p-3">{item.condition}</td>
                     <td className="p-3">{item.bedroom}</td>
                     <td className="p-3">{item.bath}</td>
                     <td className="p-3">{item.size}</td>
+                    <td className="p-3">{item.roadWidth}</td>
+                    <td className="p-3">{item.facing}</td>
+                    <td className="p-3">{item.totalFloor}</td>
+                    <td className="p-3">{item.floorNo}</td>
+                    <td className="p-3">{item.furnished}</td>
+                    <td className="p-3">{item.parking}</td>
+                    <td className="p-3">{item.contactName}</td>
+                    <td className="p-3">{item.contactMobile}</td>
+                    <td className="p-3">{item.reference}</td>
+                    <td className="p-3">{item.projectName}</td>
                     <td className="p-3 font-semibold text-green-700">
                       ₹ {item.price}
                     </td>
                     <td className="p-3">{item.locality || item.address}</td>
+                    <td className="p-3">{item.additionalDetails}</td>
+
                     <td className="p-3 relative">
                       <div className="relative inline-block text-left">
                         <button
