@@ -13,28 +13,27 @@ export default function PropertiesPage() {
 
   const [filters, setFilters] = useState({
     id: "",
-    propertyFor: "",
+    property_id: "",
+    property_for: "",
     type: "",
-    subType: "",
+    sub_type: "",
     condition: "",
     bedroom: "",
     bath: "",
     size: "",
-    roadWidth: "",
     facing: "",
-    totalFloor: "",
-    floorNo: "",
+    total_floor: "",
+    floor_no: "",
+    road: "",
     furnished: "",
     parking: "",
-    contactName: "",
-    contactMobile: "",
-    reference: "",
-    projectName: "",
+    contact_mobile: "",
+    reference_by: "",
+    project_name: "",
     address: "",
-    additionalDetails: "",
-    minPrice: "",
-    maxPrice: "",
-    locality: "",
+    additional: "",
+    min_price: "",
+    max_price: "",
   });
 
   const setF = (k: string, v: string) =>
@@ -52,65 +51,31 @@ export default function PropertiesPage() {
         return;
       }
 
-      const mapped = (data || []).map((p: any) => ({
-        ...p,
-        id: p?.id ?? "",
-        propertyFor: p?.property_for ?? p?.propertyFor ?? "",
-        type: p?.type ?? "",
-        subType: p?.sub_type ?? "",
-        condition: p?.condition ?? "",
-        bedroom: p?.bedroom ?? "",
-        bath: p?.bath ?? "",
-        size: p?.size ?? "",
-        roadWidth: p?.road_width ?? "",
-        facing: p?.facing ?? "",
-        totalFloor: p?.total_floor ?? "",
-        floorNo: p?.floor_no ?? "",
-        furnished: p?.furnished ?? "",
-        parking: p?.parking ?? "",
-        contactName: p?.contact_name ?? "",
-        contactMobile: p?.contact_mobile ?? "",
-        reference: p?.reference ?? "",
-        projectName: p?.project_name ?? "",
-        additionalDetails: p?.additional_details ?? "",
-        address: p?.address ?? p?.locality ?? "",
-        locality: p?.locality ?? p?.address ?? "",
-        minPrice: p?.min_price ?? p?.minPrice ?? "",
-        maxPrice: p?.max_price ?? p?.maxPrice ?? "",
-        price:
-          p?.price ??
-          p?.max_price ??
-          p?.min_price ??
-          p?.maxPrice ??
-          p?.minPrice ??
-          0,
-      }));
-
-      setList(mapped);
+      setList(data || []);
     };
 
     loadProperties();
   }, []);
 
   const checkMatch = (item: any) => {
-    if (!item) return false;
-
-    const price = Number(item?.price ?? item?.maxPrice ?? item?.minPrice ?? 0);
+    const price = Number(item?.max_price ?? item?.min_price ?? 0);
 
     return (
       (!filters.id || String(item?.id ?? "").includes(filters.id)) &&
-      (!filters.propertyFor ||
-        String(item?.propertyFor ?? "")
+      (!filters.property_id ||
+        String(item?.property_id ?? "").includes(filters.property_id)) &&
+      (!filters.property_for ||
+        String(item?.property_for ?? "")
           .toLowerCase()
-          .includes(filters.propertyFor.toLowerCase())) &&
+          .includes(filters.property_for.toLowerCase())) &&
       (!filters.type ||
         String(item?.type ?? "")
           .toLowerCase()
           .includes(filters.type.toLowerCase())) &&
-      (!filters.subType ||
-        String(item?.subType ?? "")
+      (!filters.sub_type ||
+        String(item?.sub_type ?? "")
           .toLowerCase()
-          .includes(filters.subType.toLowerCase())) &&
+          .includes(filters.sub_type.toLowerCase())) &&
       (!filters.condition ||
         String(item?.condition ?? "")
           .toLowerCase()
@@ -119,16 +84,15 @@ export default function PropertiesPage() {
         String(item?.bedroom ?? "").includes(filters.bedroom)) &&
       (!filters.bath || String(item?.bath ?? "").includes(filters.bath)) &&
       (!filters.size || String(item?.size ?? "").includes(filters.size)) &&
-      (!filters.roadWidth ||
-        String(item?.roadWidth ?? "").includes(filters.roadWidth)) &&
       (!filters.facing ||
         String(item?.facing ?? "")
           .toLowerCase()
           .includes(filters.facing.toLowerCase())) &&
-      (!filters.totalFloor ||
-        String(item?.totalFloor ?? "").includes(filters.totalFloor)) &&
-      (!filters.floorNo ||
-        String(item?.floorNo ?? "").includes(filters.floorNo)) &&
+      (!filters.total_floor ||
+        String(item?.total_floor ?? "").includes(filters.total_floor)) &&
+      (!filters.floor_no ||
+        String(item?.floor_no ?? "").includes(filters.floor_no)) &&
+      (!filters.road || String(item?.road ?? "").includes(filters.road)) &&
       (!filters.furnished ||
         String(item?.furnished ?? "")
           .toLowerCase()
@@ -137,26 +101,26 @@ export default function PropertiesPage() {
         String(item?.parking ?? "")
           .toLowerCase()
           .includes(filters.parking.toLowerCase())) &&
-      (!filters.contactName ||
-        String(item?.contactName ?? "")
+      (!filters.contact_mobile ||
+        String(item?.contact_mobile ?? "").includes(filters.contact_mobile)) &&
+      (!filters.reference_by ||
+        String(item?.reference_by ?? "")
           .toLowerCase()
-          .includes(filters.contactName.toLowerCase())) &&
-      (!filters.contactMobile ||
-        String(item?.contactMobile ?? "").includes(filters.contactMobile)) &&
-      (!filters.reference ||
-        String(item?.reference ?? "")
+          .includes(filters.reference_by.toLowerCase())) &&
+      (!filters.project_name ||
+        String(item?.project_name ?? "")
           .toLowerCase()
-          .includes(filters.reference.toLowerCase())) &&
-      (!filters.projectName ||
-        String(item?.projectName ?? "")
+          .includes(filters.project_name.toLowerCase())) &&
+      (!filters.address ||
+        String(item?.address ?? "")
           .toLowerCase()
-          .includes(filters.projectName.toLowerCase())) &&
-      (!filters.locality ||
-        String(item?.locality ?? item?.address ?? "")
+          .includes(filters.address.toLowerCase())) &&
+      (!filters.additional ||
+        String(item?.additional ?? "")
           .toLowerCase()
-          .includes(filters.locality.toLowerCase())) &&
-      (!filters.minPrice || price >= Number(filters.minPrice)) &&
-      (!filters.maxPrice || price <= Number(filters.maxPrice))
+          .includes(filters.additional.toLowerCase())) &&
+      (!filters.min_price || price >= Number(filters.min_price)) &&
+      (!filters.max_price || price <= Number(filters.max_price))
     );
   };
 
@@ -176,79 +140,22 @@ export default function PropertiesPage() {
     const confirmDelete = confirm("Delete this property?");
     if (!confirmDelete) return;
 
-    const { error } = await supabase.from("properties").delete().eq("id", id);
+    const { error } = await supabase
+      .from("properties")
+      .delete()
+      .eq("id", id);
 
-    if (error) {
-      alert("Delete failed");
-      console.error(error);
-      return;
+    if (!error) {
+      setList((prev) => prev.filter((x) => String(x.id) !== String(id)));
     }
-
-    setList((prev) => prev.filter((x) => String(x.id) !== String(id)));
   };
 
-  const input =
-    "w-full border border-white/30 bg-white/80 backdrop-blur p-2 rounded-lg text-sm text-black placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-400";
-
   const exportToExcel = () => {
-    const headers = [
-      "id",
-      "propertyFor",
-      "type",
-      "subType",
-      "condition",
-      "bedroom",
-      "bath",
-      "size",
-      "roadWidth",
-      "facing",
-      "totalFloor",
-      "floorNo",
-      "furnished",
-      "parking",
-      "contactName",
-      "contactMobile",
-      "reference",
-      "projectName",
-      "additionalDetails",
-      "minPrice",
-      "maxPrice",
-      "locality",
-    ];
-
-    const data = filtered.map((item) => [
-      item.id ?? "",
-      item.propertyFor ?? "",
-      item.type ?? "",
-      item.subType ?? "",
-      item.condition ?? "",
-      item.bedroom ?? "",
-      item.bath ?? "",
-      item.size ?? "",
-      item.roadWidth ?? "",
-      item.facing ?? "",
-      item.totalFloor ?? "",
-      item.floorNo ?? "",
-      item.furnished ?? "",
-      item.parking ?? "",
-      item.contactName ?? "",
-      item.contactMobile ?? "",
-      item.reference ?? "",
-      item.projectName ?? "",
-      item.additionalDetails ?? "",
-      item.minPrice ?? "",
-      item.maxPrice ?? "",
-      item.locality ?? item.address ?? "",
-    ]);
-
-    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    const worksheet = XLSX.utils.json_to_sheet(filtered);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Properties");
 
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
 
     const blob = new Blob([excelBuffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -257,12 +164,16 @@ export default function PropertiesPage() {
     saveAs(blob, "Resite_Properties.xlsx");
   };
 
+  const input =
+    "w-full border border-white/30 bg-white/80 p-2 rounded text-sm text-black";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-6">
       <div className="max-w-7xl mx-auto">
+
         <Link
           href="/dashboard"
-          className="inline-block mb-4 bg-white/90 hover:bg-white px-4 py-2 rounded-xl shadow transition text-black font-medium"
+          className="inline-block mb-4 bg-white px-4 py-2 rounded shadow text-black"
         >
           ← Dashboard
         </Link>
@@ -271,20 +182,19 @@ export default function PropertiesPage() {
           📋 Resite Properties
         </h1>
 
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 rounded-2xl mb-6 shadow-xl">
-          <h2 className="font-bold text-lg">🏠 Resite Properties Data</h2>
+        <div className="bg-blue-600 text-white p-5 rounded mb-6">
           <p>Total Properties: {list.length}</p>
           <p>Search Match: {filtered.filter((x) => checkMatch(x)).length}</p>
 
           <button
             onClick={exportToExcel}
-            className="mt-3 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg text-white font-semibold"
+            className="mt-3 px-4 py-2 bg-green-500 rounded"
           >
             Export to Excel
           </button>
         </div>
 
-        <div className="bg-white/90 backdrop-blur rounded-2xl p-4 mb-6 shadow-xl">
+        <div className="bg-white p-4 mb-6 rounded shadow">
           <div className="grid md:grid-cols-4 gap-3">
             {Object.keys(filters).map((key) => (
               <input
@@ -298,32 +208,34 @@ export default function PropertiesPage() {
           </div>
         </div>
 
-        <div className="overflow-auto rounded-2xl shadow-2xl bg-white">
+        <div className="overflow-auto bg-white rounded shadow">
           <table className="w-full text-sm text-black">
-            <thead className="bg-gray-200 font-semibold">
+
+            <thead className="bg-gray-200">
               <tr>
-                <th className="p-3 text-left">ID</th>
-                <th className="p-3 text-left">Property For</th>
-                <th className="p-3 text-left">Type</th>
-                <th className="p-3 text-left">Sub Type</th>
-                <th className="p-3 text-left">Condition</th>
-                <th className="p-3 text-left">Bedroom</th>
-                <th className="p-3 text-left">Bath</th>
-                <th className="p-3 text-left">Size</th>
-                <th className="p-3 text-left">Road Width</th>
-                <th className="p-3 text-left">Facing</th>
-                <th className="p-3 text-left">Total Floor</th>
-                <th className="p-3 text-left">Floor No</th>
-                <th className="p-3 text-left">Furnished</th>
-                <th className="p-3 text-left">Parking</th>
-                <th className="p-3 text-left">Contact Name</th>
-                <th className="p-3 text-left">Contact Mobile</th>
-                <th className="p-3 text-left">Reference</th>
-                <th className="p-3 text-left">Project Name</th>
-                <th className="p-3 text-left">Price</th>
-                <th className="p-3 text-left">Locality</th>
-                <th className="p-3 text-left">Additional Details</th>
-                <th className="p-3 text-left">Action</th>
+                <th className="p-3">ID</th>
+                <th className="p-3">Property ID</th>
+                <th className="p-3">Property For</th>
+                <th className="p-3">Type</th>
+                <th className="p-3">Sub Type</th>
+                <th className="p-3">Condition</th>
+                <th className="p-3">Bedroom</th>
+                <th className="p-3">Bath</th>
+                <th className="p-3">Size</th>
+                <th className="p-3">Facing</th>
+                <th className="p-3">Total Floor</th>
+                <th className="p-3">Floor No</th>
+                <th className="p-3">Road</th>
+                <th className="p-3">Furnished</th>
+                <th className="p-3">Parking</th>
+                <th className="p-3">Contact</th>
+                <th className="p-3">Reference</th>
+                <th className="p-3">Project</th>
+                <th className="p-3">Address</th>
+                <th className="p-3">Additional</th>
+                <th className="p-3">Min Price</th>
+                <th className="p-3">Max Price</th>
+                <th className="p-3">Action</th>
               </tr>
             </thead>
 
@@ -334,90 +246,55 @@ export default function PropertiesPage() {
                 return (
                   <tr
                     key={item.id || i}
-                    className={`border-t transition hover:bg-blue-50 ${
-                      isMatch ? "bg-green-100" : ""
-                    }`}
+                    className={`border-t ${isMatch ? "bg-green-100" : ""}`}
                   >
                     <td className="p-3">{item.id}</td>
-                    <td className="p-3">{item.propertyFor}</td>
+                    <td className="p-3">{item.property_id}</td>
+                    <td className="p-3">{item.property_for}</td>
                     <td className="p-3">{item.type}</td>
-                    <td className="p-3">{item.subType}</td>
+                    <td className="p-3">{item.sub_type}</td>
                     <td className="p-3">{item.condition}</td>
                     <td className="p-3">{item.bedroom}</td>
                     <td className="p-3">{item.bath}</td>
                     <td className="p-3">{item.size}</td>
-                    <td className="p-3">{item.roadWidth}</td>
                     <td className="p-3">{item.facing}</td>
-                    <td className="p-3">{item.totalFloor}</td>
-                    <td className="p-3">{item.floorNo}</td>
+                    <td className="p-3">{item.total_floor}</td>
+                    <td className="p-3">{item.floor_no}</td>
+                    <td className="p-3">{item.road}</td>
                     <td className="p-3">{item.furnished}</td>
                     <td className="p-3">{item.parking}</td>
-                    <td className="p-3">{item.contactName}</td>
-                    <td className="p-3">{item.contactMobile}</td>
-                    <td className="p-3">{item.reference}</td>
-                    <td className="p-3">{item.projectName}</td>
-                    <td className="p-3 font-semibold text-green-700">
-                      ₹ {item.price}
+                    <td className="p-3">{item.contact_mobile}</td>
+                    <td className="p-3">{item.reference_by}</td>
+                    <td className="p-3">{item.project_name}</td>
+                    <td className="p-3">{item.address}</td>
+                    <td className="p-3">{item.additional}</td>
+                    <td className="p-3">{item.min_price}</td>
+                    <td className="p-3">{item.max_price}</td>
+
+                    <td className="p-3">
+                      <button
+                        onClick={() => handleSold(item.id)}
+                        className="mr-2 text-green-600"
+                      >
+                        Sold
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="text-red-600"
+                      >
+                        Delete
+                      </button>
                     </td>
-                    <td className="p-3">{item.locality || item.address}</td>
-                    <td className="p-3">{item.additionalDetails}</td>
 
-                    <td className="p-3 relative">
-                      <div className="relative inline-block text-left">
-                        <button
-                          onClick={() =>
-                            setOpenMenu(
-                              openMenu === String(item.id)
-                                ? null
-                                : String(item.id)
-                            )
-                          }
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-200 hover:bg-blue-300"
-                        >
-                          ⋮
-                        </button>
-
-                        {openMenu === String(item.id) && (
-                          <div className="absolute right-0 mt-2 w-40 bg-white border rounded-xl shadow-lg z-50">
-                            {!soldMap[String(item.id)] && (
-                              <button
-                                onClick={() => {
-                                  handleSold(String(item.id));
-                                  setOpenMenu(null);
-                                }}
-                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                              >
-                                Press For Sold
-                              </button>
-                            )}
-
-                            <Link
-                              href={`/properties/edit/${item.id}`}
-                              className="block px-4 py-2 text-sm hover:bg-gray-100"
-                              onClick={() => setOpenMenu(null)}
-                            >
-                              Edit
-                            </Link>
-
-                            <button
-                              onClick={() => {
-                                handleDelete(String(item.id));
-                                setOpenMenu(null);
-                              }}
-                              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
                   </tr>
                 );
               })}
             </tbody>
+
           </table>
         </div>
+
       </div>
     </div>
   );
