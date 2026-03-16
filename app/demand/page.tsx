@@ -96,8 +96,6 @@ export default function DemandPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  /* ---------- PROPERTY MATCHING ---------- */
-
   const fetchMatching = async (demand: Demand) => {
 
     const { data } = await supabase
@@ -140,8 +138,6 @@ export default function DemandPage() {
     setMatchedProps(filtered);
 
   };
-
-  /* ---------- SAVE DEMAND ---------- */
 
   const handleSubmit = async () => {
 
@@ -217,8 +213,6 @@ export default function DemandPage() {
 
       </div>
 
-      {/* FORM */}
-
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-white p-5 rounded-3xl shadow-lg">
 
         {Object.keys(form).map((key) => (
@@ -244,8 +238,6 @@ export default function DemandPage() {
 
       </div>
 
-      {/* DEMANDS TABLE */}
-
       <div className="mt-8 bg-white rounded-3xl p-5 shadow-lg overflow-x-auto">
 
         <h2 className="text-xl font-bold mb-4 text-black">
@@ -254,7 +246,7 @@ export default function DemandPage() {
 
         <table className="min-w-full text-sm border border-gray-200">
 
-          <thead className="bg-gray-100 text-gray-700">
+          <thead className="bg-gray-100 text-black">
 
             <tr>
               <th className="p-2 border">Date</th>
@@ -281,23 +273,23 @@ export default function DemandPage() {
 
               <tr key={d.id} className="hover:bg-gray-50">
 
-                <td className="p-2 border">{d.date}</td>
-                <td className="p-2 border font-semibold">{d.client_name}</td>
-                <td className="p-2 border">{d.mobile}</td>
-                <td className="p-2 border">{d.reference}</td>
-                <td className="p-2 border">{d.property_for}</td>
-                <td className="p-2 border">{d.type}</td>
-                <td className="p-2 border">{d.bedroom}</td>
-                <td className="p-2 border">{d.bath}</td>
-                <td className="p-2 border">{d.facing}</td>
-                <td className="p-2 border">{d.size}</td>
+                <td className="p-2 border text-black">{d.date}</td>
+                <td className="p-2 border font-semibold text-black">{d.client_name}</td>
+                <td className="p-2 border text-black">{d.mobile}</td>
+                <td className="p-2 border text-black">{d.reference}</td>
+                <td className="p-2 border text-black">{d.property_for}</td>
+                <td className="p-2 border text-black">{d.type}</td>
+                <td className="p-2 border text-black">{d.bedroom}</td>
+                <td className="p-2 border text-black">{d.bath}</td>
+                <td className="p-2 border text-black">{d.facing}</td>
+                <td className="p-2 border text-black">{d.size}</td>
 
                 <td className="p-2 border text-green-600 font-semibold">
                   ₹{d.min_price} - ₹{d.max_price}
                 </td>
 
-                <td className="p-2 border">{d.locality}</td>
-                <td className="p-2 border">{d.follow_up}</td>
+                <td className="p-2 border text-black">{d.locality}</td>
+                <td className="p-2 border text-black">{d.follow_up}</td>
 
                 <td className="p-2 border">
 
@@ -338,8 +330,6 @@ export default function DemandPage() {
 
       </div>
 
-      {/* MATCHED PROPERTIES */}
-
       {selected && (
 
         <div className="mt-8 bg-white rounded-3xl p-5 shadow-lg">
@@ -354,7 +344,7 @@ export default function DemandPage() {
 
               <div key={p.id} className="border rounded-2xl p-4">
 
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-black">
                   Property ID: {p.id}
                 </p>
 
@@ -362,11 +352,11 @@ export default function DemandPage() {
                   {p.title || "Property"}
                 </h3>
 
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-black">
                   📍 {p.locality || p.address || "Location not available"}
                 </p>
 
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-black">
                   Facing: {p.facing}
                 </p>
 
