@@ -96,7 +96,7 @@ export default function DemandPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  /* ---------- PROPERTY MATCHING (PRICE + FACING + LOCATION) ---------- */
+  /* ---------- PROPERTY MATCHING ---------- */
 
   const fetchMatching = async (demand: Demand) => {
 
@@ -244,70 +244,97 @@ export default function DemandPage() {
 
       </div>
 
-      {/* DEMANDS */}
+      {/* DEMANDS TABLE */}
 
-      <div className="mt-8 bg-white rounded-3xl p-5 shadow-lg">
+      <div className="mt-8 bg-white rounded-3xl p-5 shadow-lg overflow-x-auto">
 
         <h2 className="text-xl font-bold mb-4 text-black">
           All Demands
         </h2>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <table className="min-w-full text-sm border border-gray-200">
 
-          {demands.map((d) => (
+          <thead className="bg-gray-100 text-gray-700">
 
-            <div key={d.id} className="border rounded-2xl p-4">
+            <tr>
+              <th className="p-2 border">Date</th>
+              <th className="p-2 border">Client</th>
+              <th className="p-2 border">Mobile</th>
+              <th className="p-2 border">Reference</th>
+              <th className="p-2 border">Property For</th>
+              <th className="p-2 border">Type</th>
+              <th className="p-2 border">Bedroom</th>
+              <th className="p-2 border">Bath</th>
+              <th className="p-2 border">Facing</th>
+              <th className="p-2 border">Size</th>
+              <th className="p-2 border">Budget</th>
+              <th className="p-2 border">Locality</th>
+              <th className="p-2 border">Follow Up</th>
+              <th className="p-2 border">Actions</th>
+            </tr>
 
-              <p className="text-xs text-gray-500">
-                📅 {d.date}
-              </p>
+          </thead>
 
-              <h3 className="font-bold text-lg text-black">
-                {d.client_name}
-              </h3>
+          <tbody>
 
-              <p className="text-sm text-gray-600">
-                📞 {d.mobile}
-              </p>
+            {demands.map((d) => (
 
-              <p className="text-sm text-gray-600">
-                📍 {d.locality} | Facing: {d.facing}
-              </p>
+              <tr key={d.id} className="hover:bg-gray-50">
 
-              <p className="text-sm text-gray-600">
-                💰 {d.min_price} - {d.max_price}
-              </p>
+                <td className="p-2 border">{d.date}</td>
+                <td className="p-2 border font-semibold">{d.client_name}</td>
+                <td className="p-2 border">{d.mobile}</td>
+                <td className="p-2 border">{d.reference}</td>
+                <td className="p-2 border">{d.property_for}</td>
+                <td className="p-2 border">{d.type}</td>
+                <td className="p-2 border">{d.bedroom}</td>
+                <td className="p-2 border">{d.bath}</td>
+                <td className="p-2 border">{d.facing}</td>
+                <td className="p-2 border">{d.size}</td>
 
-              <div className="flex gap-2 mt-3">
+                <td className="p-2 border text-green-600 font-semibold">
+                  ₹{d.min_price} - ₹{d.max_price}
+                </td>
 
-                <button
-                  onClick={() => openWhatsApp(d.mobile)}
-                  className="bg-green-500 text-white px-3 py-1 rounded-lg text-sm"
-                >
-                  WhatsApp
-                </button>
+                <td className="p-2 border">{d.locality}</td>
+                <td className="p-2 border">{d.follow_up}</td>
 
-                <button
-                  onClick={() => handleSeeDetails(d)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm"
-                >
-                  Match Properties
-                </button>
+                <td className="p-2 border">
 
-                <button
-                  onClick={() => handleDelete(d.id!)}
-                  className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm"
-                >
-                  Delete
-                </button>
+                  <div className="flex gap-2">
 
-              </div>
+                    <button
+                      onClick={() => openWhatsApp(d.mobile)}
+                      className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+                    >
+                      WA
+                    </button>
 
-            </div>
+                    <button
+                      onClick={() => handleSeeDetails(d)}
+                      className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
+                    >
+                      Match
+                    </button>
 
-          ))}
+                    <button
+                      onClick={() => handleDelete(d.id!)}
+                      className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                    >
+                      Delete
+                    </button>
 
-        </div>
+                  </div>
+
+                </td>
+
+              </tr>
+
+            ))}
+
+          </tbody>
+
+        </table>
 
       </div>
 
