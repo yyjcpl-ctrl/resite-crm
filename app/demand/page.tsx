@@ -18,7 +18,7 @@ type Demand = {
   facing: string;
   size: string;
   purpose: string;
-  lead: string;
+  additional: string;
   min_price: string;
   max_price: string;
   locality: string;
@@ -57,7 +57,7 @@ export default function DemandPage() {
     facing: "",
     size: "",
     purpose: "",
-    lead: "",
+    additional: "",
     min_price: "",
     max_price: "",
     locality: "",
@@ -74,14 +74,12 @@ export default function DemandPage() {
   }, []);
 
   const fetchDemands = async () => {
-
     const { data } = await supabase
       .from("demands")
       .select("*")
       .order("created_at", { ascending: false });
 
     if (data) setDemands(data);
-
   };
 
   const stats = useMemo(() => {
@@ -186,12 +184,9 @@ export default function DemandPage() {
   };
 
   const handleSeeDetails = async (d: Demand) => {
-
     setSelected(d);
     setMatchedProps([]);
-
     await fetchMatching(d);
-
   };
 
   return (
@@ -247,7 +242,6 @@ export default function DemandPage() {
         <table className="min-w-full text-sm border border-gray-200">
 
           <thead className="bg-gray-100 text-black">
-
             <tr>
               <th className="p-2 border">Date</th>
               <th className="p-2 border">Client</th>
@@ -255,16 +249,18 @@ export default function DemandPage() {
               <th className="p-2 border">Reference</th>
               <th className="p-2 border">Property For</th>
               <th className="p-2 border">Type</th>
+              <th className="p-2 border">Condition</th>
               <th className="p-2 border">Bedroom</th>
               <th className="p-2 border">Bath</th>
               <th className="p-2 border">Facing</th>
               <th className="p-2 border">Size</th>
+              <th className="p-2 border">Purpose</th>
+              <th className="p-2 border">Additional</th>
               <th className="p-2 border">Budget</th>
               <th className="p-2 border">Locality</th>
               <th className="p-2 border">Follow Up</th>
               <th className="p-2 border">Actions</th>
             </tr>
-
           </thead>
 
           <tbody>
@@ -279,22 +275,21 @@ export default function DemandPage() {
                 <td className="p-2 border text-black">{d.reference}</td>
                 <td className="p-2 border text-black">{d.property_for}</td>
                 <td className="p-2 border text-black">{d.type}</td>
+                <td className="p-2 border text-black">{d.condition}</td>
                 <td className="p-2 border text-black">{d.bedroom}</td>
                 <td className="p-2 border text-black">{d.bath}</td>
                 <td className="p-2 border text-black">{d.facing}</td>
                 <td className="p-2 border text-black">{d.size}</td>
-
+                <td className="p-2 border text-black">{d.purpose}</td>
+                <td className="p-2 border text-black">{d.additional}</td>
                 <td className="p-2 border text-green-600 font-semibold">
                   ₹{d.min_price} - ₹{d.max_price}
                 </td>
-
                 <td className="p-2 border text-black">{d.locality}</td>
                 <td className="p-2 border text-black">{d.follow_up}</td>
 
                 <td className="p-2 border">
-
                   <div className="flex gap-2">
-
                     <button
                       onClick={() => openWhatsApp(d.mobile)}
                       className="bg-green-500 text-white px-2 py-1 rounded text-xs"
@@ -315,9 +310,7 @@ export default function DemandPage() {
                     >
                       Delete
                     </button>
-
                   </div>
-
                 </td>
 
               </tr>
